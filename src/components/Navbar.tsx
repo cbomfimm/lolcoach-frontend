@@ -39,7 +39,7 @@ export function Navbar() {
           <div className="relative w-9 h-9 flex items-center justify-center">
             <div className="absolute inset-0 bg-gold/20 rounded-sm rotate-45 group-hover:bg-gold/30 transition-colors" />
             <div className="relative z-10">
-              <Image src="/icon.png" alt="Mindrift logo" width={24} height={24} className="rounded-sm object-contain" />
+              <Image src="/icon.png" alt="Mindrift logo" width={42} height={42} className="rounded-sm object-contain" />
             </div>
           </div>
           <span className="font-cinzel text-lg font-bold tracking-tight text-gold-light uppercase">

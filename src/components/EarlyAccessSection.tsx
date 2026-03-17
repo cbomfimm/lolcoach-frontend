@@ -9,32 +9,10 @@ export function EarlyAccessSection() {
   const inView = useInView(ref, { once: true });
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data?.error || 'Erro ao enviar o e-mail');
-      } else {
-        setSubmitted(true);
-        setEmail('');
-      }
-    } catch (err) {
-      setError('Erro de rede. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
+    if (email.trim()) setSubmitted(true);
   };
 
   return (
@@ -63,10 +41,6 @@ export function EarlyAccessSection() {
             </span>
           </div>
         </motion.div>
-
-        {error && (
-          <div className="mt-2 text-sm text-red-400">{error}</div>
-        )}
 
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
@@ -105,8 +79,8 @@ export function EarlyAccessSection() {
                 required
                 className="flex-1 h-12 px-4 rounded-sm bg-arcane-dark border border-gold/30 text-gold-light font-rajdhani text-base placeholder:text-gold-light/30 focus:outline-none focus:border-gold/60 transition-colors"
               />
-              <Button type="submit" size="lg" disabled={loading} className="font-cinzel font-bold tracking-widest uppercase whitespace-nowrap group">
-                {loading ? 'Enviando...' : 'Quero Acesso'}
+              <Button type="submit" size="lg" className="font-cinzel font-bold tracking-widest uppercase whitespace-nowrap group">
+                Quero Acesso
                 <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
               </Button>
             </form>
