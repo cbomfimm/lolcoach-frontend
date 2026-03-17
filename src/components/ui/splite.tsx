@@ -1,6 +1,6 @@
 'use client';
 import { Suspense, lazy } from 'react';
-import type Application from '@splinetool/runtime';
+import type { Application } from '@splinetool/runtime';
 
 const Spline = lazy(() => import('@splinetool/react-spline'));
 

@@ -5,7 +5,7 @@ import { ChevronRight, TrendingUp, Zap } from 'lucide-react';
 import { SplineScene } from '@/components/ui/splite';
 import { Spotlight } from '@/components/ui/spotlight';
 import { Button } from '@/components/ui/button';
-import type Application from '@splinetool/runtime';
+import type { Application } from '@splinetool/runtime';
 
 // Common names Spline uses for the robot head object
 const HEAD_NAMES = ['Head', 'head', 'Robot Head', 'RobotHead', 'Robot_Head', 'Sphere'];
