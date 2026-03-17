@@ -180,7 +180,7 @@ export function HeroSection() {
           >
             <Button size="lg" className="font-cinzel font-bold tracking-widest uppercase group relative overflow-hidden">
               <span className="relative z-10 flex items-center gap-2">
-                Quero Acesso Antecipado <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                Acesso Antecipado <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-gold-dark via-gold to-gold-glow opacity-0 group-hover:opacity-100 transition-opacity" />
             </Button>
