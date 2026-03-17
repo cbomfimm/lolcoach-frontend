@@ -1,7 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Menu, X, ChevronRight } from 'lucide-react';
+import { Menu, X, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
+import icon from '@/assets/icon.png';
 import { Button } from '@/components/ui/button';
 
 const navLinks = [
@@ -35,12 +37,15 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <a href="#" className="flex items-center gap-2 group">
-          <div className="relative w-8 h-8">
+          <div className="relative w-9 h-9 flex items-center justify-center">
             <div className="absolute inset-0 bg-gold/20 rounded-sm rotate-45 group-hover:bg-gold/30 transition-colors" />
-            <Swords className="relative z-10 w-5 h-5 text-gold m-1.5" />
+            <div className="relative z-10">
+              <Image src={icon} alt="Mindrift logo" width={24} height={24} className="rounded-sm object-contain" />
+            </div>
           </div>
-          <span className="font-cinzel text-lg font-bold tracking-widest text-gold-light">
-            LOL<span className="text-gold">COACH</span>
+          <span className="font-cinzel text-lg font-bold tracking-tight text-gold-light uppercase">
+            <span className="text-gold-light">MIND</span>
+            <span className="text-gold">RIFT</span>
           </span>
         </a>
 

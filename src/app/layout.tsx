@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import logo from "./icon.png";
 
 export const metadata: Metadata = {
-  title: "LOLCoach — AI-Powered League of Legends Coaching",
+  title: "MindRiftAi — Plataforma de Coaching com IA",
   description:
-    "Harness the power of machine learning to analyze your replays, master champion mechanics, and climb the ranked ladder with precision.",
+    "Aproveite o poder do aprendizado de máquina para dominar as mecânicas dos campeões e subir na ranqueada com precisão.",
+  icons: {
+    icon: logo.src,
+    shortcut: logo.src,
+    apple: logo.src,
+  },
 };
 
 export default function RootLayout({
@@ -13,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
