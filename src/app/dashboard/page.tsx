@@ -284,7 +284,7 @@ export default function DashboardPage() {
               isPro ? 'border-gold/40 bg-gold/10 text-gold' : 'border-arcane-border bg-arcane-panel text-gold-light/40'
             }`}>
               {isPro ? <Crown className="w-3 h-3" /> : <Swords className="w-3 h-3" />}
-              {isPro ? 'PRO' : 'FREE'}
+              {subscription?.tier === 'challenger' ? 'CHALLENGER' : isPro ? 'GRAND MASTER' : 'ROOKIE'}
             </div>
             <button
               onClick={handleSignOut}
@@ -334,6 +334,7 @@ export default function DashboardPage() {
             liveLoading={liveLoading}
             liveError={liveError}
             onCheckLiveGame={handleCheckLiveGame}
+            ddItems={ddItems}
           />
         )}
 
@@ -1006,12 +1007,13 @@ function ChampSelectRow({ entry: cs }: { entry: ChampSelectEntry }) {
 
 // ─── Full profile view ────────────────────────────────────────────────────────
 
-function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheckLiveGame }: {
+function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheckLiveGame, ddItems }: {
   profile: RiotProfile;
   isPro: boolean;
   liveGame: LiveGame | null | 'not-in-game';
   liveLoading: boolean;
   liveError: string | null;
+  ddItems: Record<string, DDragonItemInfo>;
   onCheckLiveGame: () => void;
 }) {
   const { summoner, soloQ, flexQ, stats, recentMatches } = profile;
@@ -1313,112 +1315,180 @@ function ChampCard({ champ }: { champ: ChampionStats }) {
   );
 }
 
+function ItemSlot({ id, ddItems, size = 28 }: { id: number; ddItems: Record<string, DDragonItemInfo>; size?: number }) {
+  if (!id) return <div style={{ width: size, height: size }} className="rounded-sm bg-arcane-dark/60 border border-gold/10 flex-shrink-0" />;
+  const src = itemIconUrl(id);
+  if (!src) return null;
+  const info = ddItems[String(id)];
+  const statEntries = info ? Object.entries(info.stats).slice(0, 5) : [];
+  return (
+    <div className="relative group/item flex-shrink-0">
+      <div style={{ width: size, height: size }} className="rounded-sm overflow-hidden bg-arcane-dark border border-gold/20">
+        <img src={src} alt={info?.name ?? ''} width={size} height={size}
+          className="w-full h-full object-cover"
+          onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
+      </div>
+      {info && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50
+                        pointer-events-none hidden group-hover/item:block
+                        w-52 bg-[#091428] border border-gold/25 rounded-sm p-2.5 shadow-2xl">
+          <p className="font-cinzel text-xs text-gold-light font-bold leading-tight">{info.name}</p>
+          {info.plaintext && (
+            <p className="font-rajdhani text-[11px] text-gold/50 mt-0.5 leading-tight">{info.plaintext}</p>
+          )}
+          {(info.gold.total > 0 || statEntries.length > 0) && (
+            <div className="border-t border-gold/10 mt-1.5 pt-1.5 space-y-0.5">
+              {info.gold.total > 0 && (
+                <p className="font-rajdhani text-[11px] text-gold/70">💰 {info.gold.total} ouro</p>
+              )}
+              {statEntries.map(([k, val]) => (
+                <p key={k} className="font-rajdhani text-[11px] text-gold-light/60">
+                  +{typeof val === 'number' && val < 1 ? `${Math.round(val * 100)}%` : val} {STAT_LABELS[k] ?? k}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MatchRow({ match: m, ddItems }: { match: MatchSummary; ddItems: Record<string, DDragonItemInfo> }) {
-  const mins = Math.floor(m.gameDurationSecs / 60);
-  const cs   = m.cs;
-  const csm  = m.csPerMin;
+  const [expanded, setExpanded] = useState(false);
+  const cs  = m.cs;
+  const csm = m.csPerMin;
+  const isAdc = m.role === 'BOTTOM';
+
+  // All roles: items[0..5] (6 core) + items[6] (trinket) = 7 slots
+  // ADC: same 7 + 1 empty placeholder for elixir = 8 slots
+  const coreItems    = m.items.slice(0, 6);   // índices 0-5
+  const trinketId    = m.items[6] ?? 0;        // índice 6 = trinket
+  const compactSlots = isAdc ? [...coreItems, trinketId, 0] : [...coreItems, trinketId];
+
+  const borderClass = m.win
+    ? 'border-arcane-blue/20 bg-arcane-blue/5'
+    : 'border-red-500/15 bg-red-500/5';
 
   return (
-    <div className={`flex items-center gap-3 rounded-sm border px-4 py-3 ${
-      m.win
-        ? 'border-arcane-blue/20 bg-arcane-blue/5 hover:border-arcane-blue/35'
-        : 'border-red-500/15 bg-red-500/5 hover:border-red-500/25'
-    } transition-colors`}>
-      {/* Result indicator */}
-      <div className="flex-shrink-0">
-        {m.win
-          ? <CheckCircle2 className="w-4 h-4 text-arcane-blue" />
-          : <XCircle className="w-4 h-4 text-red-400" />
-        }
-      </div>
-
-      {/* Champion icon */}
-      <div className="w-9 h-9 rounded-sm overflow-hidden bg-arcane-dark flex-shrink-0 border border-gold/10">
-        <img
-          src={champIconUrl(m.champion)}
-          alt={m.champion}
-          width={36}
-          height={36}
-          className="w-full h-full object-cover"
-          onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
-        />
-      </div>
-
-      {/* Champion + role */}
-      <div className="w-24 flex-shrink-0">
-        <div className="font-cinzel font-bold text-sm text-gold-light truncate">{m.champion}</div>
-        <div className="font-rajdhani text-xs text-gold-light/40">{ROLE_LABEL[m.role] ?? m.role}</div>
-      </div>
-
-      {/* KDA */}
-      <div className="flex-1 min-w-0">
-        <div className={`font-cinzel font-bold text-sm ${kdaColor(m.kda)}`}>
-          {m.kills}/{m.deaths}/{m.assists}
+    <div className={`rounded-sm border ${borderClass} transition-colors`}>
+      {/* ── Main row ── */}
+      <div
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none"
+        onClick={() => setExpanded(v => !v)}
+      >
+        {/* Result */}
+        <div className="flex-shrink-0">
+          {m.win
+            ? <CheckCircle2 className="w-4 h-4 text-arcane-blue" />
+            : <XCircle className="w-4 h-4 text-red-400" />
+          }
         </div>
-        <div className="font-rajdhani text-xs text-gold-light/30">{m.kda} KDA</div>
+
+        {/* Champion icon */}
+        <div className="w-9 h-9 rounded-sm overflow-hidden bg-arcane-dark flex-shrink-0 border border-gold/10">
+          <img src={champIconUrl(m.champion)} alt={m.champion} width={36} height={36}
+            className="w-full h-full object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} />
+        </div>
+
+        {/* Champion + role */}
+        <div className="w-24 flex-shrink-0">
+          <div className="font-cinzel font-bold text-sm text-gold-light truncate">{m.champion}</div>
+          <div className="font-rajdhani text-xs text-gold-light/40">{ROLE_LABEL[m.role] ?? m.role}</div>
+        </div>
+
+        {/* KDA */}
+        <div className="flex-1 min-w-0">
+          <div className={`font-cinzel font-bold text-sm ${kdaColor(m.kda)}`}>
+            {m.kills}/{m.deaths}/{m.assists}
+          </div>
+          <div className="font-rajdhani text-xs text-gold-light/30">{m.kda} KDA</div>
+        </div>
+
+        {/* CS */}
+        <div className="hidden sm:block text-right flex-shrink-0 w-16">
+          <div className="font-rajdhani font-bold text-sm text-gold-light/70">{cs} CS</div>
+          <div className="font-rajdhani text-xs text-gold-light/30">{csm}/min</div>
+        </div>
+
+        {/* Vision */}
+        <div className="hidden md:block text-right flex-shrink-0 w-12">
+          <div className="font-rajdhani text-sm text-gold-light/50">{m.visionScore}</div>
+          <div className="font-rajdhani text-xs text-gold-light/25">visão</div>
+        </div>
+
+        {/* Items compact — trinket separated by gap */}
+        <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
+          {compactSlots.map((id, idx) => (
+            <div key={idx} className={idx === 6 ? 'ml-1' : ''}>
+              <ItemSlot id={id} ddItems={ddItems} size={28} />
+            </div>
+          ))}
+        </div>
+
+        {/* Duration + expand */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="text-right w-10">
+            <div className="font-rajdhani text-xs text-gold-light/40">{fmtDuration(Number(m.gameDurationSecs))}</div>
+          </div>
+          <ChevronDown className={`w-4 h-4 text-gold/30 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+        </div>
       </div>
 
-      {/* CS */}
-      <div className="hidden sm:block text-right flex-shrink-0 w-16">
-        <div className="font-rajdhani font-bold text-sm text-gold-light/70">{cs} CS</div>
-        <div className="font-rajdhani text-xs text-gold-light/30">{csm}/min</div>
-      </div>
+      {/* ── Expanded panel ── */}
+      {expanded && (
+        <div className="px-4 pb-4 border-t border-gold/10 pt-3 space-y-4">
+          {/* Stats row */}
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            <div>
+              <div className="font-rajdhani text-[10px] text-gold/50 uppercase tracking-widest mb-0.5">Dano</div>
+              <div className="font-cinzel text-sm text-gold-light">{m.damageToChamps.toLocaleString('pt-BR')}</div>
+            </div>
+            <div>
+              <div className="font-rajdhani text-[10px] text-gold/50 uppercase tracking-widest mb-0.5">Ouro</div>
+              <div className="font-cinzel text-sm text-gold-light">{m.goldEarned.toLocaleString('pt-BR')}</div>
+            </div>
+            <div>
+              <div className="font-rajdhani text-[10px] text-gold/50 uppercase tracking-widest mb-0.5">Visão</div>
+              <div className="font-cinzel text-sm text-gold-light">{m.visionScore}</div>
+            </div>
+            <div className="hidden sm:block">
+              <div className="font-rajdhani text-[10px] text-gold/50 uppercase tracking-widest mb-0.5">Duração</div>
+              <div className="font-cinzel text-sm text-gold-light">{fmtDuration(Number(m.gameDurationSecs))}</div>
+            </div>
+          </div>
 
-      {/* Vision */}
-      <div className="hidden md:block text-right flex-shrink-0 w-12">
-        <div className="font-rajdhani text-sm text-gold-light/50">{m.visionScore}</div>
-        <div className="font-rajdhani text-xs text-gold-light/25">visão</div>
-      </div>
-
-      {/* Items */}
-      <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
-        {m.items.slice(0, 6).map((id, idx) => {
-          if (!id) return null;
-          const src = itemIconUrl(id);
-          if (!src) return null;
-          const info = ddItems[String(id)];
-          const statEntries = info ? Object.entries(info.stats).slice(0, 5) : [];
-          return (
-            <div key={idx} className="relative group/item">
-              <div className="w-7 h-7 rounded-sm overflow-hidden bg-arcane-dark border border-gold/20">
-                <img src={src} alt={info?.name ?? ''} width={28} height={28}
-                  className="w-full h-full object-cover"
-                  onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
+          {/* Full item build */}
+          <div>
+            <div className="font-rajdhani text-[10px] text-gold/40 uppercase tracking-widest mb-2">
+              Build {isAdc ? '(ADC — Elixir separado)' : ''}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {/* Core items */}
+              {coreItems.map((id, idx) => (
+                <ItemSlot key={idx} id={id} ddItems={ddItems} size={36} />
+              ))}
+              {/* Divider */}
+              <div className="w-px bg-gold/15 mx-1 self-stretch" />
+              {/* Trinket */}
+              <div className="flex flex-col items-center gap-0.5">
+                <ItemSlot id={trinketId} ddItems={ddItems} size={36} />
+                <span className="font-rajdhani text-[9px] text-gold/30">trinket</span>
               </div>
-              {/* Tooltip */}
-              {info && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50
-                                pointer-events-none hidden group-hover/item:block
-                                w-52 bg-[#091428] border border-gold/25 rounded-sm p-2.5 shadow-2xl">
-                  <p className="font-cinzel text-xs text-gold-light font-bold leading-tight">{info.name}</p>
-                  {info.plaintext && (
-                    <p className="font-rajdhani text-[11px] text-gold/50 mt-0.5 leading-tight">{info.plaintext}</p>
-                  )}
-                  {(info.gold.total > 0 || statEntries.length > 0) && (
-                    <div className="border-t border-gold/10 mt-1.5 pt-1.5 space-y-0.5">
-                      {info.gold.total > 0 && (
-                        <p className="font-rajdhani text-[11px] text-gold/70">
-                          💰 {info.gold.total} ouro
-                        </p>
-                      )}
-                      {statEntries.map(([k, val]) => (
-                        <p key={k} className="font-rajdhani text-[11px] text-gold-light/60">
-                          +{typeof val === 'number' && val < 1 ? `${Math.round(val * 100)}%` : val} {STAT_LABELS[k] ?? k}
-                        </p>
-                      ))}
-                    </div>
-                  )}
+              {/* ADC elixir placeholder */}
+              {isAdc && (
+                <div className="flex flex-col items-center gap-0.5">
+                  <div className="w-9 h-9 rounded-sm bg-arcane-dark/60 border border-gold/10 border-dashed flex items-center justify-center">
+                    <span className="font-rajdhani text-[9px] text-gold/20">Elix</span>
+                  </div>
+                  <span className="font-rajdhani text-[9px] text-gold/30">elixir</span>
                 </div>
               )}
             </div>
-          );
-        })}
-      </div>
-
-      {/* Duration */}
-      <div className="text-right flex-shrink-0 w-12">
-        <div className="font-rajdhani text-xs text-gold-light/40">{fmtDuration(Number(m.gameDurationSecs))}</div>
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
