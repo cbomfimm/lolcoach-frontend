@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -1337,96 +1338,121 @@ function SectionHeader({ label, color = 'bg-gold' }: { label: string; color?: st
 }
 
 function ItemSlot({ id, ddItems, size = 28 }: { id: number; ddItems: Record<string, DDragonItemInfo>; size?: number }) {
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
   if (!id) return <div style={{ width: size, height: size }} className="rounded-sm bg-white/5 border border-white/8 flex-shrink-0" />;
   const src = itemIconUrl(id);
   if (!src) return null;
-  const info = ddItems[String(id)];
+
+  const info        = ddItems[String(id)];
   const statEntries = info ? Object.entries(info.stats).filter(([, v]) => v > 0).slice(0, 6) : [];
-  const desc = info?.description ? stripItemHtml(info.description) : '';
-  const components = info?.from ?? [];
+  const desc        = info?.description ? stripItemHtml(info.description) : '';
+  const components  = info?.from ?? [];
   const buildsInto  = info?.into ?? [];
+
+  const showTooltip = () => {
+    if (!anchorRef.current) return;
+    const r = anchorRef.current.getBoundingClientRect();
+    setPos({ x: r.left + r.width / 2, y: r.top });
+  };
+
+  const tooltip = pos && info && createPortal(
+    <div
+      style={{
+        position: 'fixed',
+        left: pos.x,
+        top: pos.y - 8,
+        transform: 'translate(-50%, -100%)',
+        zIndex: 99999,
+        width: 256,
+      }}
+      className="bg-[#080f1e] border border-gold/40 rounded-sm p-3 shadow-[0_8px_40px_rgba(0,0,0,0.9)] pointer-events-none"
+    >
+      {/* Name + price */}
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <p className="font-cinzel text-xs text-gold font-bold leading-tight">{info.name}</p>
+        {info.gold.total > 0 && (
+          <span className="font-rajdhani text-[11px] text-gold/80 whitespace-nowrap flex-shrink-0">
+            💰 {info.gold.total.toLocaleString('pt-BR')}
+            {info.gold.base > 0 && info.gold.base !== info.gold.total && (
+              <span className="text-gold/50"> (+{info.gold.base})</span>
+            )}
+          </span>
+        )}
+      </div>
+      {/* Plaintext */}
+      {info.plaintext && (
+        <p className="font-rajdhani text-[11px] text-arcane-blue/80 leading-tight mb-1.5 italic">{info.plaintext}</p>
+      )}
+      {/* Description */}
+      {desc && (
+        <p className="font-rajdhani text-[11px] text-gold-light/65 leading-snug mb-2 border-t border-white/8 pt-1.5 whitespace-pre-line">
+          {desc}
+        </p>
+      )}
+      {/* Stats */}
+      {statEntries.length > 0 && (
+        <div className="border-t border-white/8 pt-1.5 mb-2 grid grid-cols-2 gap-x-3 gap-y-0.5">
+          {statEntries.map(([k, val]) => (
+            <p key={k} className="font-rajdhani text-[11px] text-gold-light/70">
+              <span className="text-gold">+{typeof val === 'number' && val < 1 ? `${Math.round(val * 100)}%` : val}</span>{' '}
+              {STAT_LABELS[k] ?? k}
+            </p>
+          ))}
+        </div>
+      )}
+      {/* Components */}
+      {components.length > 0 && (
+        <div className="border-t border-white/8 pt-1.5 mt-1">
+          <p className="font-rajdhani text-[9px] text-gold/40 uppercase tracking-widest mb-1">Componentes</p>
+          <div className="flex flex-wrap gap-1">
+            {components.map(cid => {
+              const csrc = itemIconUrl(Number(cid));
+              return csrc ? (
+                <img key={cid} src={csrc} alt={ddItems[cid]?.name ?? cid}
+                  title={ddItems[cid]?.name} width={22} height={22}
+                  className="rounded-sm border border-gold/25 object-cover" />
+              ) : null;
+            })}
+          </div>
+        </div>
+      )}
+      {/* Builds into */}
+      {buildsInto.length > 0 && (
+        <div className="border-t border-white/8 pt-1.5 mt-1">
+          <p className="font-rajdhani text-[9px] text-gold/40 uppercase tracking-widest mb-1">Constrói</p>
+          <div className="flex flex-wrap gap-1">
+            {buildsInto.slice(0, 6).map(iid => {
+              const isrc = itemIconUrl(Number(iid));
+              return isrc ? (
+                <img key={iid} src={isrc} alt={ddItems[iid]?.name ?? iid}
+                  title={ddItems[iid]?.name} width={22} height={22}
+                  className="rounded-sm border border-gold/25 object-cover" />
+              ) : null;
+            })}
+          </div>
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+
   return (
-    <div className="relative group/item flex-shrink-0">
-      <div style={{ width: size, height: size }}
-        className="rounded-sm overflow-hidden bg-arcane-dark border border-gold/30 hover:border-gold/60 transition-colors cursor-default">
+    <>
+      <div
+        ref={anchorRef}
+        style={{ width: size, height: size }}
+        className="rounded-sm overflow-hidden bg-arcane-dark border border-gold/30 hover:border-gold/60 transition-colors cursor-default flex-shrink-0"
+        onMouseEnter={showTooltip}
+        onMouseLeave={() => setPos(null)}
+      >
         <img src={src} alt={info?.name ?? ''} width={size} height={size}
           className="w-full h-full object-cover"
           onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
       </div>
-      {info && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50
-                        pointer-events-none opacity-0 group-hover/item:opacity-100 transition-opacity duration-150
-                        w-64 bg-[#080f1e] border border-gold/40 rounded-sm p-3 shadow-[0_8px_32px_rgba(0,0,0,0.8)]">
-          {/* Name + price */}
-          <div className="flex items-start justify-between gap-2 mb-1.5">
-            <p className="font-cinzel text-xs text-gold font-bold leading-tight">{info.name}</p>
-            {info.gold.total > 0 && (
-              <span className="font-rajdhani text-[11px] text-gold/80 whitespace-nowrap flex-shrink-0">
-                💰 {info.gold.total.toLocaleString('pt-BR')}
-                {info.gold.base > 0 && info.gold.base !== info.gold.total && (
-                  <span className="text-gold/50"> (+{info.gold.base})</span>
-                )}
-              </span>
-            )}
-          </div>
-          {/* Plaintext */}
-          {info.plaintext && (
-            <p className="font-rajdhani text-[11px] text-arcane-blue/80 leading-tight mb-1.5 italic">{info.plaintext}</p>
-          )}
-          {/* Description */}
-          {desc && (
-            <p className="font-rajdhani text-[11px] text-gold-light/65 leading-snug mb-2 border-t border-white/8 pt-1.5 line-clamp-6 whitespace-pre-line">
-              {desc}
-            </p>
-          )}
-          {/* Stats */}
-          {statEntries.length > 0 && (
-            <div className="border-t border-white/8 pt-1.5 mb-2 grid grid-cols-2 gap-x-3 gap-y-0.5">
-              {statEntries.map(([k, val]) => (
-                <p key={k} className="font-rajdhani text-[11px] text-gold-light/70">
-                  <span className="text-gold">+{typeof val === 'number' && val < 1 ? `${Math.round(val * 100)}%` : val}</span>{' '}
-                  {STAT_LABELS[k] ?? k}
-                </p>
-              ))}
-            </div>
-          )}
-          {/* Build components */}
-          {components.length > 0 && (
-            <div className="border-t border-white/8 pt-1.5 mt-1">
-              <p className="font-rajdhani text-[9px] text-gold/40 uppercase tracking-widest mb-1">Componentes</p>
-              <div className="flex flex-wrap gap-1">
-                {components.map(cid => {
-                  const csrc = itemIconUrl(Number(cid));
-                  return csrc ? (
-                    <img key={cid} src={csrc} alt={ddItems[cid]?.name ?? cid}
-                      title={ddItems[cid]?.name}
-                      width={22} height={22}
-                      className="rounded-sm border border-gold/25 object-cover" />
-                  ) : null;
-                })}
-              </div>
-            </div>
-          )}
-          {/* Builds into */}
-          {buildsInto.length > 0 && (
-            <div className="border-t border-white/8 pt-1.5 mt-1">
-              <p className="font-rajdhani text-[9px] text-gold/40 uppercase tracking-widest mb-1">Constrói</p>
-              <div className="flex flex-wrap gap-1">
-                {buildsInto.slice(0, 6).map(iid => {
-                  const isrc = itemIconUrl(Number(iid));
-                  return isrc ? (
-                    <img key={iid} src={isrc} alt={ddItems[iid]?.name ?? iid}
-                      title={ddItems[iid]?.name}
-                      width={22} height={22}
-                      className="rounded-sm border border-gold/25 object-cover" />
-                  ) : null;
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+      {tooltip}
+    </>
   );
 }
 
