@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sub = await getSubscription();
       setSubscription(sub);
     } catch {
-      setSubscription({ tier: 'free', is_active: false, expires_at: null });
+      setSubscription({ tier: 'rookie', is_active: false, expires_at: null });
     }
   }, []);
 
