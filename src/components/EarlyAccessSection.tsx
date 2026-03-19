@@ -71,15 +71,20 @@ export function EarlyAccessSection() {
         >
           {!submitted ? (
             <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+              <label htmlFor="early-access-email" className="sr-only">
+                Seu e-mail
+              </label>
               <input
+                id="early-access-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
                 required
-                className="flex-1 h-12 px-4 rounded-sm bg-arcane-dark border border-gold/30 text-gold-light font-rajdhani text-base placeholder:text-gold-light/30 focus:outline-none focus:border-gold/60 transition-colors"
+                autoComplete="email"
+                className="flex-1 h-12 px-4 rounded-sm bg-arcane-dark border border-gold/30 text-gold-light font-rajdhani text-base placeholder:text-gold-light/30 focus:outline-none focus:border-gold/60 focus-visible:ring-1 focus-visible:ring-gold transition-colors"
               />
-              <Button type="submit" size="lg" className="font-cinzel font-bold tracking-widest uppercase whitespace-nowrap group">
+              <Button type="submit" size="lg" className="font-cinzel font-bold tracking-widest uppercase whitespace-nowrap group cursor-pointer">
                 Quero Acesso
                 <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
               </Button>
