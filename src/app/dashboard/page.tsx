@@ -15,9 +15,10 @@ import { asset, route } from '@/lib/assets';
 import { getDDragonVersion, champIconUrl, itemIconUrl, profileIconUrl, getItemsData, type DDragonItemInfo } from '@/lib/ddragon';
 import {
   getRiotProfile, getRiotProfileByPuuid, getMySummoner, getLiveGame,
-  getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect,
+  getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect, getMatchTimeline,
   type RiotProfile, type MatchSummary, type ChampionStats, type LiveGame, type SummonerProfile,
   type PostGameSession, type PagedResult, type AnalyticsTrend, type ChampSelectEntry,
+  type ItemPurchase,
 } from '@/lib/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -1138,7 +1139,7 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
       <div className="bg-arcane-panel border border-gold/20 rounded-sm p-6">
         <SectionTitle icon={<Zap className="w-4 h-4 text-gold" />} title="Partidas Recentes" />
         <div className="mt-4 space-y-2">
-          {recentMatches.map((m) => <MatchRow key={m.matchId} match={m} ddItems={ddItems} />)}
+          {recentMatches.map((m) => <MatchRow key={m.matchId} match={m} ddItems={ddItems} puuid={summoner.puuid} />)}
         </div>
       </div>
 
@@ -1317,6 +1318,15 @@ function ChampCard({ champ }: { champ: ChampionStats }) {
   );
 }
 
+function ExpandStat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div>
+      <div className="font-rajdhani text-[10px] text-gold/40 uppercase tracking-widest mb-0.5">{label}</div>
+      <div className={`font-cinzel text-sm ${highlight ? 'text-gold' : 'text-gold-light/80'}`}>{value}</div>
+    </div>
+  );
+}
+
 function ItemSlot({ id, ddItems, size = 28 }: { id: number; ddItems: Record<string, DDragonItemInfo>; size?: number }) {
   if (!id) return <div style={{ width: size, height: size }} className="rounded-sm bg-arcane-dark/60 border border-gold/10 flex-shrink-0" />;
   const src = itemIconUrl(id);
@@ -1356,8 +1366,21 @@ function ItemSlot({ id, ddItems, size = 28 }: { id: number; ddItems: Record<stri
   );
 }
 
-function MatchRow({ match: m, ddItems }: { match: MatchSummary; ddItems: Record<string, DDragonItemInfo> }) {
+function MatchRow({ match: m, ddItems, puuid }: { match: MatchSummary; ddItems: Record<string, DDragonItemInfo>; puuid: string }) {
   const [expanded, setExpanded] = useState(false);
+  const [timeline, setTimeline] = useState<ItemPurchase[] | null>(null);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+
+  const handleExpand = () => {
+    setExpanded(v => !v);
+    if (!expanded && timeline === null) {
+      setTimelineLoading(true);
+      getMatchTimeline(m.matchId, puuid)
+        .then(data => setTimeline(data.items))
+        .catch(() => setTimeline([]))
+        .finally(() => setTimelineLoading(false));
+    }
+  };
   const cs  = m.cs;
   const csm = m.csPerMin;
   const isAdc = m.role === 'BOTTOM';
@@ -1377,7 +1400,7 @@ function MatchRow({ match: m, ddItems }: { match: MatchSummary; ddItems: Record<
       {/* ── Main row ── */}
       <div
         className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none"
-        onClick={() => setExpanded(v => !v)}
+        onClick={handleExpand}
       >
         {/* Result */}
         <div className="flex-shrink-0">
@@ -1441,44 +1464,21 @@ function MatchRow({ match: m, ddItems }: { match: MatchSummary; ddItems: Record<
       {/* ── Expanded panel ── */}
       {expanded && (
         <div className="px-4 pb-4 border-t border-gold/10 pt-3 space-y-4">
-          {/* Stats row */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-            <div>
-              <div className="font-rajdhani text-[10px] text-gold/50 uppercase tracking-widest mb-0.5">Dano</div>
-              <div className="font-cinzel text-sm text-gold-light">{m.damageToChamps.toLocaleString('pt-BR')}</div>
-            </div>
-            <div>
-              <div className="font-rajdhani text-[10px] text-gold/50 uppercase tracking-widest mb-0.5">Ouro</div>
-              <div className="font-cinzel text-sm text-gold-light">{m.goldEarned.toLocaleString('pt-BR')}</div>
-            </div>
-            <div>
-              <div className="font-rajdhani text-[10px] text-gold/50 uppercase tracking-widest mb-0.5">Visão</div>
-              <div className="font-cinzel text-sm text-gold-light">{m.visionScore}</div>
-            </div>
-            <div className="hidden sm:block">
-              <div className="font-rajdhani text-[10px] text-gold/50 uppercase tracking-widest mb-0.5">Duração</div>
-              <div className="font-cinzel text-sm text-gold-light">{fmtDuration(Number(m.gameDurationSecs))}</div>
-            </div>
-          </div>
 
           {/* Full item build */}
           <div>
             <div className="font-rajdhani text-[10px] text-gold/40 uppercase tracking-widest mb-2">
-              Build {isAdc ? '(ADC — Elixir separado)' : ''}
+              Build Final {isAdc ? '(ADC — Elixir separado)' : ''}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {/* Core items */}
               {coreItems.map((id, idx) => (
                 <ItemSlot key={idx} id={id} ddItems={ddItems} size={36} />
               ))}
-              {/* Divider */}
               <div className="w-px bg-gold/15 mx-1 self-stretch" />
-              {/* Trinket */}
               <div className="flex flex-col items-center gap-0.5">
                 <ItemSlot id={trinketId} ddItems={ddItems} size={36} />
                 <span className="font-rajdhani text-[9px] text-gold/30">trinket</span>
               </div>
-              {/* ADC elixir placeholder */}
               {isAdc && (
                 <div className="flex flex-col items-center gap-0.5">
                   <div className="w-9 h-9 rounded-sm bg-arcane-dark/60 border border-gold/10 border-dashed flex items-center justify-center">
@@ -1489,6 +1489,74 @@ function MatchRow({ match: m, ddItems }: { match: MatchSummary; ddItems: Record<
               )}
             </div>
           </div>
+
+          {/* Combat stats */}
+          <div>
+            <div className="font-rajdhani text-[10px] text-gold/40 uppercase tracking-widest mb-2">Combate</div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+              <ExpandStat label="Dano Causado" value={m.damageToChamps.toLocaleString('pt-BR')} />
+              <ExpandStat label="Dano Recebido" value={m.damageTaken.toLocaleString('pt-BR')} />
+              <ExpandStat label="Cura Total" value={m.totalHeal.toLocaleString('pt-BR')} />
+              <ExpandStat label="Dano Obj." value={m.damageToObjectives.toLocaleString('pt-BR')} />
+              {m.pentaKills > 0 && <ExpandStat label="Pentas" value={String(m.pentaKills)} highlight />}
+              {m.killingSprees > 0 && <ExpandStat label="Sprees" value={String(m.killingSprees)} />}
+              {m.turretKills > 0 && <ExpandStat label="Torres" value={String(m.turretKills)} />}
+              {m.objectivesStolen > 0 && <ExpandStat label="Obj. Roubados" value={String(m.objectivesStolen)} highlight />}
+              {m.firstBlood && <ExpandStat label="First Blood" value="Sim" highlight />}
+            </div>
+          </div>
+
+          {/* Vision & Economy */}
+          <div>
+            <div className="font-rajdhani text-[10px] text-gold/40 uppercase tracking-widest mb-2">Visão & Economia</div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+              <ExpandStat label="Visão" value={String(m.visionScore)} />
+              <ExpandStat label="Wards Colocadas" value={String(m.wardsPlaced)} />
+              <ExpandStat label="Wards Destruídas" value={String(m.wardsKilled)} />
+              <ExpandStat label="Wards de Controle" value={String(m.controlWardsBought)} />
+              <ExpandStat label="Ouro Ganho" value={m.goldEarned.toLocaleString('pt-BR')} />
+              <ExpandStat label="Ouro Gasto" value={m.goldSpent.toLocaleString('pt-BR')} />
+              <ExpandStat label="Tempo Morto" value={`${Math.floor(m.timeDeadSecs / 60)}m ${m.timeDeadSecs % 60}s`} />
+              <ExpandStat label="CC (s)" value={String(m.crowdControlScore)} />
+            </div>
+          </div>
+
+          {/* Spell casts */}
+          <div>
+            <div className="font-rajdhani text-[10px] text-gold/40 uppercase tracking-widest mb-2">Usos de Habilidades</div>
+            <div className="grid grid-cols-4 gap-2">
+              <ExpandStat label="Q" value={String(m.qCasts)} />
+              <ExpandStat label="W" value={String(m.wCasts)} />
+              <ExpandStat label="E" value={String(m.eCasts)} />
+              <ExpandStat label="R" value={String(m.rCasts)} />
+            </div>
+          </div>
+
+          {/* Item purchase timeline */}
+          <div>
+            <div className="font-rajdhani text-[10px] text-gold/40 uppercase tracking-widest mb-2">Ordem de Compras</div>
+            {timelineLoading && (
+              <div className="flex items-center gap-2 text-gold/40 font-rajdhani text-xs">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando timeline...
+              </div>
+            )}
+            {!timelineLoading && timeline && timeline.length === 0 && (
+              <div className="text-gold/30 font-rajdhani text-xs">Timeline não disponível.</div>
+            )}
+            {!timelineLoading && timeline && timeline.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {timeline.map((ev, idx) => (
+                  <div key={idx} className="flex flex-col items-center gap-0.5">
+                    <ItemSlot id={ev.itemId} ddItems={ddItems} size={30} />
+                    <span className="font-rajdhani text-[9px] text-gold/40">
+                      {ev.minuteMark}:{String(ev.secondMark).padStart(2, '0')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
       )}
     </div>

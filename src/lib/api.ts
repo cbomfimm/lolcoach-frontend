@@ -179,6 +179,37 @@ export interface MatchSummary {
   damageToChamps: number;
   gameDurationSecs: number;
   items: number[];
+  // Extended stats
+  damageTaken: number;
+  wardsPlaced: number;
+  wardsKilled: number;
+  controlWardsBought: number;
+  firstBlood: boolean;
+  pentaKills: number;
+  turretKills: number;
+  totalHeal: number;
+  goldSpent: number;
+  timeDeadSecs: number;
+  damageToObjectives: number;
+  objectivesStolen: number;
+  crowdControlScore: number;
+  killingSprees: number;
+  qCasts: number;
+  wCasts: number;
+  eCasts: number;
+  rCasts: number;
+  participantId: number;
+}
+
+export interface ItemPurchase {
+  itemId: number;
+  timestamp: number;
+  minuteMark: number;
+  secondMark: number;
+}
+
+export interface MatchTimeline {
+  items: ItemPurchase[];
 }
 
 export interface ChampionStats {
@@ -284,6 +315,15 @@ export async function createCheckoutSession(priceId: string): Promise<{ url: str
     body: JSON.stringify({ priceId }),
   });
   if (!res.ok) throw new Error('Falha ao criar sessão de checkout.');
+  return res.json();
+}
+
+export async function getMatchTimeline(matchId: string, puuid: string): Promise<MatchTimeline> {
+  const res = await fetch(
+    `${BACKEND}/api/riot/match/${encodeURIComponent(matchId)}/timeline?puuid=${encodeURIComponent(puuid)}`,
+    { headers: await authHeaders() }
+  );
+  if (!res.ok) throw new Error('Erro ao buscar timeline da partida.');
   return res.json();
 }
 
