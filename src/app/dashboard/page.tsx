@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { asset, route } from '@/lib/assets';
+import { getDDragonVersion, champIconUrl, itemIconUrl, profileIconUrl } from '@/lib/ddragon';
 import {
   getRiotProfile, getRiotProfileByPuuid, getMySummoner, getLiveGame,
   getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect,
@@ -33,22 +34,6 @@ const TIER_COLOR: Record<string, string> = {
   MASTER: '#9b59b6', GRANDMASTER: '#e74c3c', CHALLENGER: '#f39c12',
 };
 
-const DDragon = 'https://ddragon.leagueoflegends.com/cdn/14.24.1';
-
-function champIcon(name: string) {
-  // normalize: "Jarvan IV" → "JarvanIV", "Nunu & Willump" → "Nunu"
-  const normalized = name.replace(/\s*&.*/, '').replace(/[\s'\.]/g, '');
-  return `${DDragon}/img/champion/${normalized}.png`;
-}
-
-function itemIcon(id: number) {
-  if (!id) return null;
-  return `${DDragon}/img/item/${id}.png`;
-}
-
-function profileIcon(id: number) {
-  return `${DDragon}/img/profileicon/${id}.png`;
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -88,6 +73,7 @@ export default function DashboardPage() {
   const [liveError, setLiveError]       = useState<string | null>(null);
   const [loadingInit, setLoadingInit]   = useState(true);
   const [error, setError]               = useState<string | null>(null);
+  const [ddVersion, setDdVersion]       = useState('14.24.1');
 
   // Coaching tab state
   const [sessions, setSessions]         = useState<PostGameSession[]>([]);
@@ -178,6 +164,10 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
   }, [user, loading, router]);
+
+  useEffect(() => {
+    getDDragonVersion().then(setDdVersion);
+  }, []);
 
   // Auto-load: se usuário já tem conta vinculada, carrega pelo PUUID (sem re-buscar por nome)
   useEffect(() => {
@@ -742,7 +732,7 @@ function SessionRow({ session: s, onDelete, scoreColor }: {
         {/* Champion icon */}
         <div className="w-9 h-9 rounded-sm overflow-hidden bg-arcane-panel flex-shrink-0 border border-gold/10">
           <img
-            src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${s.champion.replace(/[\s'\.]/g,'')}.png`}
+            src={champIconUrl(s.champion)}
             alt={s.champion}
             width={36}
             height={36}
@@ -887,7 +877,7 @@ function ChampSelectRow({ entry: cs }: { entry: ChampSelectEntry }) {
         {/* Champion icon */}
         <div className="w-9 h-9 rounded-sm overflow-hidden bg-arcane-panel flex-shrink-0 border border-gold/10">
           <img
-            src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${cs.player_champion.replace(/[\s'\.]/g,'')}.png`}
+            src={champIconUrl(cs.player_champion)}
             alt={cs.player_champion}
             width={36}
             height={36}
@@ -952,7 +942,7 @@ function ChampSelectRow({ entry: cs }: { entry: ChampSelectEntry }) {
                       <div key={i} className="flex items-center gap-1.5 bg-arcane-dark border border-gold/10 rounded-sm px-2 py-1">
                         <div className="w-5 h-5 rounded-sm overflow-hidden">
                           <img
-                            src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${c.replace(/[\s'\.]/g,'')}.png`}
+                            src={champIconUrl(c)}
                             alt={c}
                             width={20}
                             height={20}
@@ -1027,7 +1017,7 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
           <div className="relative flex-shrink-0">
             <div className="w-20 h-20 rounded-sm border-2 border-gold/30 overflow-hidden bg-arcane-dark">
               <img
-                src={profileIcon(summoner.profileIconId)}
+                src={profileIconUrl(summoner.profileIconId)}
                 alt={summoner.name}
                 width={80}
                 height={80}
@@ -1160,12 +1150,9 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
 
 // ─── Live Game Card ───────────────────────────────────────────────────────────
 
-const DDragonVersion = '14.24.1';
-
-function champIconById(id: number) {
-  // We don't have champion name→id map here, so use the data dragon champion by ID approach
-  // Fallback: use a placeholder. The champion name isn't available from spectator, only ID.
-  return `https://ddragon.leagueoflegends.com/cdn/${DDragonVersion}/img/champion/Aatrox.png`;
+function champIconById(_id: number) {
+  // Champion name not available from spectator API, only ID — use generic placeholder
+  return champIconUrl('Aatrox');
 }
 
 function LiveGameCard({ game, myPuuid }: { game: LiveGame; myPuuid: string }) {
@@ -1293,7 +1280,7 @@ function ChampCard({ champ }: { champ: ChampionStats }) {
     <div className="flex items-center gap-3 bg-arcane-dark/60 border border-gold/10 rounded-sm p-3 hover:border-gold/25 transition-colors">
       <div className="w-10 h-10 rounded-sm overflow-hidden bg-arcane-panel flex-shrink-0 border border-gold/10">
         <img
-          src={champIcon(champ.champion)}
+          src={champIconUrl(champ.champion)}
           alt={champ.champion}
           width={40}
           height={40}
@@ -1336,7 +1323,7 @@ function MatchRow({ match: m }: { match: MatchSummary }) {
       {/* Champion icon */}
       <div className="w-9 h-9 rounded-sm overflow-hidden bg-arcane-dark flex-shrink-0 border border-gold/10">
         <img
-          src={champIcon(m.champion)}
+          src={champIconUrl(m.champion)}
           alt={m.champion}
           width={36}
           height={36}
@@ -1374,7 +1361,7 @@ function MatchRow({ match: m }: { match: MatchSummary }) {
       {/* Items */}
       <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
         {m.items.slice(0, 6).map((id, idx) => {
-          const src = itemIcon(id);
+          const src = itemIconUrl(id);
           return src ? (
             <div key={idx} className="w-6 h-6 rounded-sm overflow-hidden bg-arcane-dark border border-gold/10">
               <img src={src} alt="" width={24} height={24} className="w-full h-full object-cover"
