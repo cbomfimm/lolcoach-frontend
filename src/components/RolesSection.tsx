@@ -115,7 +115,7 @@ export function RolesSection() {
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.08 * i }}
                 onClick={() => setActive(i)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-sm border font-rajdhani font-bold text-sm tracking-wider uppercase transition-all duration-300 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-sm border font-rajdhani font-bold text-sm tracking-wider uppercase transition-all duration-300 cursor-pointer ${
                   active === i
                     ? 'border-gold/60 bg-gold/10 text-gold shadow-[0_0_12px_rgba(200,155,60,0.15)]'
                     : 'border-gold/15 text-gold-light/50 hover:border-gold/30 hover:text-gold/70'

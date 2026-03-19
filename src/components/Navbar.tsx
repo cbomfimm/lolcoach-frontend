@@ -1,20 +1,30 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ChevronRight } from 'lucide-react';
+import { Menu, X, ChevronRight, LayoutDashboard, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 const navLinks = [
   { label: 'Problema', href: '#problema' },
   { label: 'Diferencial', href: '#diferencial' },
   { label: 'Como Funciona', href: '#como-funciona' },
   { label: 'Roles', href: '#roles' },
+  { label: 'Planos', href: '#pricing' },
 ];
 
 export function Navbar() {
+  const router = useRouter();
+  const { user, signOut } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -64,15 +74,38 @@ export function Navbar() {
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <Button size="sm" className="font-rajdhani font-bold tracking-widest uppercase flex items-center gap-1">
-            Acesso Antecipado <ChevronRight className="w-3 h-3" />
-          </Button>
+          {user ? (
+            <>
+              <a
+                href="/dashboard"
+                className="flex items-center gap-1.5 font-rajdhani font-bold tracking-widest uppercase text-sm text-gold-light/70 hover:text-gold transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4" /> Dashboard
+              </a>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-1.5 font-rajdhani font-bold tracking-widest uppercase text-sm text-gold-light/40 hover:text-red-400 transition-colors"
+              >
+                <LogOut className="w-4 h-4" /> Sair
+              </button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              className="font-rajdhani font-bold tracking-widest uppercase flex items-center gap-1"
+              onClick={() => router.push('/login')}
+            >
+              Entrar <ChevronRight className="w-3 h-3" />
+            </Button>
+          )}
         </div>
 
         {/* Mobile menu button */}
         <button
-          className="md:hidden text-gold-light hover:text-gold"
+          className="md:hidden text-gold-light hover:text-gold cursor-pointer transition-colors"
           onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? 'Fechar menu' : 'Abrir menu'}
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -98,9 +131,31 @@ export function Navbar() {
                   {link.label}
                 </a>
               ))}
-              <Button size="sm" className="font-rajdhani font-bold tracking-widest uppercase w-full mt-2">
-                Acesso Antecipado
-              </Button>
+              {user ? (
+                <>
+                  <a
+                    href="/dashboard"
+                    className="font-rajdhani font-bold tracking-widest uppercase text-sm text-gold hover:text-gold-light transition-colors flex items-center gap-1.5"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <LayoutDashboard className="w-4 h-4" /> Dashboard
+                  </a>
+                  <button
+                    onClick={() => { handleSignOut(); setMobileOpen(false); }}
+                    className="font-rajdhani font-bold tracking-widest uppercase text-sm text-gold-light/40 hover:text-red-400 transition-colors flex items-center gap-1.5 text-left"
+                  >
+                    <LogOut className="w-4 h-4" /> Sair
+                  </button>
+                </>
+              ) : (
+                <Button
+                  size="sm"
+                  className="font-rajdhani font-bold tracking-widest uppercase w-full mt-2"
+                  onClick={() => { router.push('/login'); setMobileOpen(false); }}
+                >
+                  Entrar
+                </Button>
+              )}
             </div>
           </motion.div>
         )}

@@ -2,6 +2,7 @@
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { Clock, Shuffle, BarChart2, Mic, HelpCircle } from 'lucide-react';
+import { GlowCard } from '@/components/ui/spotlight-card';
 
 const problems = [
   {
@@ -79,26 +80,27 @@ export function ProblemsSection() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.08 * i, duration: 0.5 }}
-                className="group relative p-6 rounded-sm border border-gold/10 bg-arcane-dark/60 hover:border-gold/25 transition-all duration-300"
               >
-                {/* Number */}
-                <div className="absolute top-4 right-4 font-cinzel text-5xl font-bold text-gold/5 select-none">
-                  {String(i + 1).padStart(2, '0')}
-                </div>
+                <GlowCard glowColor="gold" className="group p-6 h-full">
+                  {/* Number */}
+                  <div className="absolute top-4 right-4 font-cinzel text-5xl font-bold text-gold/5 select-none pointer-events-none">
+                    {String(i + 1).padStart(2, '0')}
+                  </div>
 
-                <div className="w-10 h-10 rounded-sm bg-gold/8 border border-gold/15 flex items-center justify-center mb-4">
-                  <Icon className="w-5 h-5 text-gold/60" />
-                </div>
+                  <div className="w-10 h-10 rounded-sm bg-gold/8 border border-gold/15 flex items-center justify-center mb-4">
+                    <Icon className="w-5 h-5 text-gold/60" />
+                  </div>
 
-                <h3 className="font-cinzel font-bold text-base text-gold-light mb-2">
-                  {problem.title}
-                </h3>
-                <p className="font-rajdhani text-sm text-gold-light/50 leading-relaxed">
-                  {problem.description}
-                </p>
+                  <h3 className="font-cinzel font-bold text-base text-gold-light mb-2">
+                    {problem.title}
+                  </h3>
+                  <p className="font-rajdhani text-sm text-gold-light/50 leading-relaxed">
+                    {problem.description}
+                  </p>
 
-                {/* Hover bottom line */}
-                <div className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  {/* Hover bottom line */}
+                  <div className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </GlowCard>
               </motion.div>
             );
           })}
@@ -108,25 +110,27 @@ export function ProblemsSection() {
             initial={{ opacity: 0, y: 30 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.08 * 5, duration: 0.5 }}
-            className="relative p-6 rounded-sm border border-gold/40 bg-gradient-to-br from-gold/8 to-transparent flex flex-col justify-between md:col-span-2 lg:col-span-1"
+            className="md:col-span-2 lg:col-span-1"
           >
-            <div>
-              <div className="font-rajdhani text-xs tracking-widest uppercase text-gold/60 mb-3">A solução</div>
-              <h3 className="font-cinzel font-bold text-xl text-gold mb-3">
-                LOLCoach foi feito para isso.
-              </h3>
-              <p className="font-rajdhani text-sm text-gold-light/60 leading-relaxed">
-                Contexto real, em tempo real, com memória das suas próprias partidas.
-                Não é mais um coach genérico — é o seu coach.
-              </p>
-            </div>
-            <a
-              href="#diferencial"
-              className="mt-6 inline-flex items-center gap-2 font-rajdhani text-sm font-bold tracking-wider uppercase text-gold hover:text-gold-glow transition-colors group"
-            >
-              Ver o diferencial
-              <span className="group-hover:translate-x-1 transition-transform">→</span>
-            </a>
+            <GlowCard glowColor="gold" className="group p-6 h-full flex flex-col justify-between solution-card">
+              <div>
+                <div className="font-rajdhani text-xs tracking-widest uppercase text-gold/60 mb-3">A solução</div>
+                <h3 className="font-cinzel font-bold text-xl text-gold mb-3">
+                  MindRift foi feito para isso.
+                </h3>
+                <p className="font-rajdhani text-sm text-gold-light/60 leading-relaxed">
+                  Contexto real, em tempo real, com memória das suas próprias partidas.
+                  Não é mais um coach genérico — é o seu coach.
+                </p>
+              </div>
+              <a
+                href="#diferencial"
+                className="mt-6 inline-flex items-center gap-2 font-rajdhani text-sm font-bold tracking-wider uppercase text-gold hover:text-gold-glow transition-colors group cursor-pointer"
+              >
+                Ver o diferencial
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
+              </a>
+            </GlowCard>
           </motion.div>
         </div>
       </div>

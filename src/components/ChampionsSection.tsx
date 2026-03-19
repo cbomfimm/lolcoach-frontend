@@ -111,7 +111,7 @@ export function ChampionsSection() {
                 animate={inView ? { opacity: 1, scale: 1 } : {}}
                 transition={{ delay: 0.1 * i }}
                 onClick={() => setActiveChamp(i)}
-                className={`relative overflow-hidden rounded-sm border transition-all duration-300 text-left group ${
+                className={`relative overflow-hidden rounded-sm border transition-all duration-300 text-left group cursor-pointer ${
                   activeChamp === i
                     ? 'border-gold/60 shadow-[0_0_20px_rgba(200,155,60,0.2)]'
                     : 'border-gold/15 hover:border-gold/30'
