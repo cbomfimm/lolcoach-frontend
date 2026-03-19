@@ -269,7 +269,9 @@ export default function DashboardPage() {
           {linkedAccount && (
             <div className="hidden sm:flex items-center gap-2 text-sm font-rajdhani">
               <span className="text-gold-light/40">Conta:</span>
-              <span className="text-gold-light/80 font-bold">{linkedAccount.summonerName}</span>
+              <span className="text-gold font-bold tracking-wide">
+                {profile?.summoner.name ?? linkedAccount.summonerName}
+              </span>
               <button
                 onClick={() => setShowLinkForm(true)}
                 className="text-gold/50 hover:text-gold transition-colors text-xs underline underline-offset-2"
