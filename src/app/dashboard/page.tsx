@@ -11,6 +11,7 @@ import {
   ArrowUpRight, ArrowDownRight, Minus,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { asset } from '@/lib/assets';
 import {
   getRiotProfile, getRiotProfileByPuuid, getMySummoner, getLiveGame,
   getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect,
@@ -220,7 +221,7 @@ export default function DashboardPage() {
             <div className="relative w-8 h-8">
               <div className="absolute inset-0 bg-gold/20 rounded-sm rotate-45" />
               <div className="relative z-10 flex items-center justify-center h-full">
-                <Image src="/icon.png" alt="MindRift" width={36} height={36} className="rounded-sm object-contain" />
+                <Image src={asset('/icon.png')} alt="MindRift" width={36} height={36} className="rounded-sm object-contain" />
               </div>
             </div>
             <span className="font-cinzel text-base font-bold tracking-tight uppercase hidden sm:block">

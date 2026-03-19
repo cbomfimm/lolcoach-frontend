@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { Eye, EyeOff, ChevronRight, Swords, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { asset } from '@/lib/assets';
 
 type Mode = 'login' | 'signup';
 
@@ -72,7 +73,7 @@ export default function LoginPage() {
               <div className="relative w-10 h-10">
                 <div className="absolute inset-0 bg-gold/20 rounded-sm rotate-45 group-hover:bg-gold/30 transition-colors" />
                 <div className="relative z-10 flex items-center justify-center h-full">
-                  <Image src="/icon.png" alt="MindRift" width={46} height={46} className="rounded-sm object-contain" />
+                  <Image src={asset('/icon.png')} alt="MindRift" width={46} height={46} className="rounded-sm object-contain" />
                 </div>
               </div>
               <span className="font-cinzel text-xl font-bold tracking-tight uppercase">
