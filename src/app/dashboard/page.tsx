@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { asset, route } from '@/lib/assets';
-import { getDDragonVersion, champIconUrl, itemIconUrl, profileIconUrl } from '@/lib/ddragon';
+import { getDDragonVersion, champIconUrl, itemIconUrl, profileIconUrl, getItemsData, type DDragonItemInfo } from '@/lib/ddragon';
 import {
   getRiotProfile, getRiotProfileByPuuid, getMySummoner, getLiveGame,
   getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect,
@@ -32,6 +32,16 @@ const TIER_COLOR: Record<string, string> = {
   IRON: '#8a8a8a', BRONZE: '#cd7f32', SILVER: '#c0c0c0', GOLD: '#ffd700',
   PLATINUM: '#00bc8c', EMERALD: '#50c878', DIAMOND: '#b9f2ff',
   MASTER: '#9b59b6', GRANDMASTER: '#e74c3c', CHALLENGER: '#f39c12',
+};
+
+const STAT_LABELS: Record<string, string> = {
+  FlatHPPoolMod: 'Vida', FlatMPPoolMod: 'Mana',
+  FlatArmorMod: 'Armadura', FlatSpellBlockMod: 'Resist. Mágica',
+  FlatPhysicalDamageMod: 'Dano Físico', FlatMagicDamageMod: 'Poder de Hab.',
+  FlatMovementSpeedMod: 'Velocidade', PercentAttackSpeedMod: 'Vel. Ataque',
+  FlatCritChanceMod: 'Chance Crítica', PercentLifeStealMod: 'Roubo de Vida',
+  FlatHPRegenMod: 'Regen HP', FlatMPRegenMod: 'Regen Mana',
+  FlatEXPBonus: 'Exp Bônus', PercentMovementSpeedMod: 'Vel. Mov.',
 };
 
 
@@ -74,6 +84,7 @@ export default function DashboardPage() {
   const [loadingInit, setLoadingInit]   = useState(true);
   const [error, setError]               = useState<string | null>(null);
   const [ddVersion, setDdVersion]       = useState('14.24.1');
+  const [ddItems, setDdItems]           = useState<Record<string, DDragonItemInfo>>({});
 
   // Coaching tab state
   const [sessions, setSessions]         = useState<PostGameSession[]>([]);
@@ -167,6 +178,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     getDDragonVersion().then(setDdVersion);
+    getItemsData().then(setDdItems);
   }, []);
 
   // Auto-load: se usuário já tem conta vinculada, carrega pelo PUUID (sem re-buscar por nome)
@@ -1122,7 +1134,7 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
       <div className="bg-arcane-panel border border-gold/20 rounded-sm p-6">
         <SectionTitle icon={<Zap className="w-4 h-4 text-gold" />} title="Partidas Recentes" />
         <div className="mt-4 space-y-2">
-          {recentMatches.map((m) => <MatchRow key={m.matchId} match={m} />)}
+          {recentMatches.map((m) => <MatchRow key={m.matchId} match={m} ddItems={ddItems} />)}
         </div>
       </div>
 
@@ -1301,7 +1313,7 @@ function ChampCard({ champ }: { champ: ChampionStats }) {
   );
 }
 
-function MatchRow({ match: m }: { match: MatchSummary }) {
+function MatchRow({ match: m, ddItems }: { match: MatchSummary; ddItems: Record<string, DDragonItemInfo> }) {
   const mins = Math.floor(m.gameDurationSecs / 60);
   const cs   = m.cs;
   const csm  = m.csPerMin;
@@ -1361,14 +1373,44 @@ function MatchRow({ match: m }: { match: MatchSummary }) {
       {/* Items */}
       <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
         {m.items.slice(0, 6).map((id, idx) => {
+          if (!id) return null;
           const src = itemIconUrl(id);
-          return src ? (
-            <div key={idx} className="w-6 h-6 rounded-sm overflow-hidden bg-arcane-dark border border-gold/10">
-              <img src={src} alt="" width={24} height={24} className="w-full h-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} />
+          if (!src) return null;
+          const info = ddItems[String(id)];
+          const statEntries = info ? Object.entries(info.stats).slice(0, 5) : [];
+          return (
+            <div key={idx} className="relative group/item">
+              <div className="w-7 h-7 rounded-sm overflow-hidden bg-arcane-dark border border-gold/20">
+                <img src={src} alt={info?.name ?? ''} width={28} height={28}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
+              </div>
+              {/* Tooltip */}
+              {info && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50
+                                pointer-events-none hidden group-hover/item:block
+                                w-52 bg-[#091428] border border-gold/25 rounded-sm p-2.5 shadow-2xl">
+                  <p className="font-cinzel text-xs text-gold-light font-bold leading-tight">{info.name}</p>
+                  {info.plaintext && (
+                    <p className="font-rajdhani text-[11px] text-gold/50 mt-0.5 leading-tight">{info.plaintext}</p>
+                  )}
+                  {(info.gold.total > 0 || statEntries.length > 0) && (
+                    <div className="border-t border-gold/10 mt-1.5 pt-1.5 space-y-0.5">
+                      {info.gold.total > 0 && (
+                        <p className="font-rajdhani text-[11px] text-gold/70">
+                          💰 {info.gold.total} ouro
+                        </p>
+                      )}
+                      {statEntries.map(([k, val]) => (
+                        <p key={k} className="font-rajdhani text-[11px] text-gold-light/60">
+                          +{typeof val === 'number' && val < 1 ? `${Math.round(val * 100)}%` : val} {STAT_LABELS[k] ?? k}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          ) : (
-            <div key={idx} className="w-6 h-6 rounded-sm bg-arcane-dark border border-gold/10" />
           );
         })}
       </div>

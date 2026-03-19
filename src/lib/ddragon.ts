@@ -33,3 +33,30 @@ export function profileIconUrl(id: number): string {
 export function ddragonBase(version: string) {
   return `https://ddragon.leagueoflegends.com/cdn/${version}`;
 }
+
+// ─── Item data ────────────────────────────────────────────────────────────────
+
+export interface DDragonItemInfo {
+  name: string;
+  plaintext: string;
+  gold: { base: number; total: number; sell: number; purchasable: boolean };
+  stats: Record<string, number>;
+}
+
+let cachedItems: Record<string, DDragonItemInfo> | null = null;
+
+export async function getItemsData(): Promise<Record<string, DDragonItemInfo>> {
+  if (cachedItems) return cachedItems;
+  try {
+    const version = await getDDragonVersion();
+    const res = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/pt_BR/item.json`
+    );
+    if (!res.ok) return {};
+    const json = await res.json();
+    cachedItems = json.data as Record<string, DDragonItemInfo>;
+    return cachedItems;
+  } catch {
+    return {};
+  }
+}
