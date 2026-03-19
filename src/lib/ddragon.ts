@@ -39,8 +39,22 @@ export function ddragonBase(version: string) {
 export interface DDragonItemInfo {
   name: string;
   plaintext: string;
+  description: string;
   gold: { base: number; total: number; sell: number; purchasable: boolean };
   stats: Record<string, number>;
+  from?: string[];    // component item IDs
+  into?: string[];    // items this builds into
+}
+
+/** Strips DDragon HTML tags, keeping readable text. */
+export function stripItemHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<li>/gi, '• ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 let cachedItems: Record<string, DDragonItemInfo> | null = null;
