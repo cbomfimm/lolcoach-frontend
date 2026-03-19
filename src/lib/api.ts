@@ -14,7 +14,7 @@ async function authHeaders(): Promise<HeadersInit> {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface Subscription {
-  tier: 'free' | 'pro';
+  tier: 'free' | 'pro' | 'grandmaster';
   is_active: boolean;
   expires_at: string | null;
 }

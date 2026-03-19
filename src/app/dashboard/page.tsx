@@ -210,7 +210,7 @@ export default function DashboardPage() {
     );
   }
 
-  const isPro = subscription?.tier === 'pro' && subscription?.is_active;
+  const isPro = (subscription?.tier === 'pro' || subscription?.tier === 'grandmaster') && subscription?.is_active;
 
   return (
     <div className="min-h-screen bg-arcane-dark text-gold-light">
@@ -328,16 +328,20 @@ export default function DashboardPage() {
         )}
 
         {profile && !showLinkForm && activeTab === 'coaching' && (
-          <CoachingView
-            sessions={sessions}
-            sessionsTotal={sessionsTotal}
-            sessionsLoading={sessionsLoading}
-            trend={trend}
-            champSelects={champSelects}
-            onLoadMore={handleLoadMoreSessions}
-            onDelete={handleDeleteSession}
-            isPro={isPro}
-          />
+          isPro ? (
+            <CoachingView
+              sessions={sessions}
+              sessionsTotal={sessionsTotal}
+              sessionsLoading={sessionsLoading}
+              trend={trend}
+              champSelects={champSelects}
+              onLoadMore={handleLoadMoreSessions}
+              onDelete={handleDeleteSession}
+              isPro={isPro}
+            />
+          ) : (
+            <UpgradeView />
+          )
         )}
       </main>
     </div>
@@ -444,6 +448,91 @@ function EmptySearch({ onSearch }: { onSearch: (name: string) => void }) {
       <h2 className="font-cinzel text-2xl font-bold text-gold-light mb-2">Busque seu Invocador</h2>
       <p className="font-rajdhani text-gold-light/40 max-w-sm">
         Digite seu nome de invocador na barra acima para ver suas estatísticas ranqueadas.
+      </p>
+    </motion.div>
+  );
+}
+
+// ─── Upgrade View (Rookie) ────────────────────────────────────────────────────
+
+const LOCKED_FEATURES = [
+  { icon: <BarChart3 className="w-5 h-5" />, title: 'Análise pós-game com IA', desc: 'Receba um relatório detalhado após cada partida com pontos fortes, erros e foco para a próxima.' },
+  { icon: <TrendingUp className="w-5 h-5" />, title: 'Tendência de performance', desc: 'Acompanhe sua evolução partida a partida com gráficos de score, CS/min e win rate.' },
+  { icon: <Zap className="w-5 h-5" />, title: 'Voz em tempo real', desc: 'Alertas de Jungle, Visão e Objetivos enquanto você joga — sem precisar pausar a tela.' },
+  { icon: <BookOpen className="w-5 h-5" />, title: 'Briefing na loading screen', desc: 'Análise da composição inimiga e sugestões de itens situacionais antes da partida começar.' },
+  { icon: <Shield className="w-5 h-5" />, title: 'Histórico de Champ Select', desc: 'Revise suas últimas análises de pick e counterpick para refinar sua preparação.' },
+];
+
+function UpgradeView() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="max-w-3xl mx-auto px-6 py-16"
+    >
+      {/* Header */}
+      <div className="text-center mb-12">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-sm bg-gold/10 border border-gold/30 mb-6">
+          <Crown className="w-8 h-8 text-gold" />
+        </div>
+        <h2 className="font-cinzel text-3xl font-bold text-gold-light mb-3">
+          Desbloqueie o Coaching Completo
+        </h2>
+        <p className="font-rajdhani text-lg text-gold-light/50 max-w-md mx-auto">
+          Seu plano <span className="text-gold font-bold">Rookie</span> inclui alertas básicos e vinculação de conta.
+          Faça upgrade para o <span className="text-gold font-bold">Grand Master</span> e ative o coaching de verdade.
+        </p>
+      </div>
+
+      {/* Features locked */}
+      <div className="space-y-3 mb-10">
+        {LOCKED_FEATURES.map((f) => (
+          <div key={f.title} className="flex items-start gap-4 bg-arcane-panel border border-gold/10 rounded-sm p-4 relative overflow-hidden">
+            <div className="w-10 h-10 rounded-sm bg-gold/10 flex items-center justify-center text-gold flex-shrink-0">
+              {f.icon}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="font-cinzel text-sm font-bold text-gold-light/80">{f.title}</span>
+                <span className="text-[10px] font-rajdhani tracking-widest uppercase border border-gold/30 text-gold/60 px-1.5 py-0.5 rounded-sm">
+                  Grand Master
+                </span>
+              </div>
+              <p className="font-rajdhani text-sm text-gold-light/40">{f.desc}</p>
+            </div>
+            {/* Lock overlay */}
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gold/20">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pricing summary */}
+      <div className="bg-arcane-dark border border-gold/30 rounded-sm p-6 mb-6 shadow-[0_0_30px_rgba(200,155,60,0.06)]">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="font-cinzel text-xl font-bold text-gold mb-1">Grand Master</div>
+            <div className="flex items-baseline gap-1">
+              <span className="font-cinzel text-3xl font-bold text-gold-light">R$14,90</span>
+              <span className="font-rajdhani text-sm text-gold/40">/mês</span>
+            </div>
+            <p className="font-rajdhani text-xs text-gold/40 mt-1">ou R$119/ano — economize 33%</p>
+          </div>
+          <a
+            href="/#pricing"
+            className="inline-flex items-center gap-2 bg-gold hover:bg-gold/90 text-arcane-dark font-cinzel font-bold text-sm tracking-widest uppercase px-6 py-3 rounded-sm transition-colors"
+          >
+            Fazer Upgrade <ChevronRight className="w-4 h-4" />
+          </a>
+        </div>
+      </div>
+
+      <p className="text-center font-rajdhani text-xs text-gold/25">
+        Cancele quando quiser. Sem fidelidade.
       </p>
     </motion.div>
   );
