@@ -187,11 +187,15 @@ export default function DashboardPage() {
         const saved = await getMySummoner();
         if (saved?.puuid) {
           setLinkedAccount(saved);
-          const p = await getRiotProfileByPuuid(saved.puuid);
-          setProfile(p);
+          try {
+            const p = await getRiotProfileByPuuid(saved.puuid);
+            setProfile(p);
+          } catch {
+            setError('Não foi possível carregar o perfil Riot. Verifique sua conexão ou tente recarregar.');
+          }
         }
       } catch {
-        // sem conta vinculada — mostra tela de vincular
+        // getMySummoner falhou — sem conta vinculada, mostra form
       } finally {
         setLoadingInit(false);
       }
@@ -303,12 +307,12 @@ export default function DashboardPage() {
 
         {/* Modal de vincular/alterar conta */}
         <AnimatePresence>
-          {(showLinkForm || (!profile && !loadingInit)) && (
+          {(showLinkForm || (!linkedAccount && !loadingInit)) && (
             <LinkAccountModal
               value={linkInput}
               onChange={setLinkInput}
               onSubmit={handleLinkAccount}
-              onCancel={profile ? () => setShowLinkForm(false) : undefined}
+              onCancel={linkedAccount ? () => setShowLinkForm(false) : undefined}
               loading={linking}
               error={linkError}
               isFirstTime={!linkedAccount}
