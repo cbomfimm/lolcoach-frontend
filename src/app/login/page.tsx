@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { Eye, EyeOff, ChevronRight, Swords, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { asset } from '@/lib/assets';
+import { asset, route } from '@/lib/assets';
 
 type Mode = 'login' | 'signup';
 
@@ -69,7 +69,7 @@ export default function LoginPage() {
         <div className="relative bg-arcane-panel border border-gold/20 rounded-sm p-8">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <a href="/" className="flex items-center gap-2 group">
+            <a href={route('/')} className="flex items-center gap-2 group">
               <div className="relative w-10 h-10">
                 <div className="absolute inset-0 bg-gold/20 rounded-sm rotate-45 group-hover:bg-gold/30 transition-colors" />
                 <div className="relative z-10 flex items-center justify-center h-full">

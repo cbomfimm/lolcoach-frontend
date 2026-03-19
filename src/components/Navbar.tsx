@@ -6,7 +6,7 @@ import { Menu, X, ChevronRight, LayoutDashboard, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { asset } from '@/lib/assets';
+import { asset, route } from '@/lib/assets';
 
 const navLinks = [
   { label: 'Problema', href: '#problema' },
@@ -78,7 +78,7 @@ export function Navbar() {
           {user ? (
             <>
               <a
-                href="/dashboard"
+                href={route('/dashboard')}
                 className="flex items-center gap-1.5 font-rajdhani font-bold tracking-widest uppercase text-sm text-gold-light/70 hover:text-gold transition-colors"
               >
                 <LayoutDashboard className="w-4 h-4" /> Dashboard
@@ -135,7 +135,7 @@ export function Navbar() {
               {user ? (
                 <>
                   <a
-                    href="/dashboard"
+                    href={route('/dashboard')}
                     className="font-rajdhani font-bold tracking-widest uppercase text-sm text-gold hover:text-gold-light transition-colors flex items-center gap-1.5"
                     onClick={() => setMobileOpen(false)}
                   >

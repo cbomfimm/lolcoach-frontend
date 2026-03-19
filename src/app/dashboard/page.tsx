@@ -11,7 +11,7 @@ import {
   ArrowUpRight, ArrowDownRight, Minus,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { asset } from '@/lib/assets';
+import { asset, route } from '@/lib/assets';
 import {
   getRiotProfile, getRiotProfileByPuuid, getMySummoner, getLiveGame,
   getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect,
@@ -217,7 +217,7 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-arcane-dark/90 backdrop-blur-xl border-b border-gold/20">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
-          <a href="/" className="flex items-center gap-2 flex-shrink-0">
+          <a href={route('/')} className="flex items-center gap-2 flex-shrink-0">
             <div className="relative w-8 h-8">
               <div className="absolute inset-0 bg-gold/20 rounded-sm rotate-45" />
               <div className="relative z-10 flex items-center justify-center h-full">
@@ -523,7 +523,7 @@ function UpgradeView() {
             <p className="font-rajdhani text-xs text-gold/40 mt-1">ou R$119/ano — economize 33%</p>
           </div>
           <a
-            href="/#pricing"
+            href={route('/#pricing')}
             className="inline-flex items-center gap-2 bg-gold hover:bg-gold/90 text-arcane-dark font-cinzel font-bold text-sm tracking-widest uppercase px-6 py-3 rounded-sm transition-colors"
           >
             Fazer Upgrade <ChevronRight className="w-4 h-4" />
@@ -695,7 +695,7 @@ function CoachingView({
             </span>
           </div>
           <a
-            href="/#pricing"
+            href={route('/#pricing')}
             className="flex-shrink-0 flex items-center gap-1 bg-gold hover:bg-gold-light text-arcane-dark font-cinzel font-bold text-xs tracking-widest uppercase px-4 py-2 rounded-sm transition-colors"
           >
             Upgrade <ChevronRight className="w-3 h-3" />
@@ -1137,7 +1137,7 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
             </span>
           </div>
           <a
-            href="/#pricing"
+            href={route('/#pricing')}
             className="flex-shrink-0 flex items-center gap-1 bg-gold hover:bg-gold-light text-arcane-dark font-cinzel font-bold text-xs tracking-widest uppercase px-4 py-2 rounded-sm transition-colors"
           >
             Upgrade <ChevronRight className="w-3 h-3" />
