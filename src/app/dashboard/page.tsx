@@ -214,7 +214,7 @@ export default function DashboardPage() {
     );
   }
 
-  const isPro = (subscription?.tier === 'pro' || subscription?.tier === 'grandmaster') && subscription?.is_active;
+  const isPro = (subscription?.tier === 'grandmaster' || subscription?.tier === 'challenger') && !!subscription?.is_active;
 
   return (
     <div className="min-h-screen bg-arcane-dark text-gold-light">
