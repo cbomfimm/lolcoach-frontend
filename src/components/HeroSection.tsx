@@ -1,6 +1,7 @@
 'use client';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { asset } from '@/lib/assets';
 import { ChevronRight, TrendingUp, Zap } from 'lucide-react';
 import { Spotlight } from '@/components/ui/spotlight';
 import { Button } from '@/components/ui/button';
@@ -156,7 +157,7 @@ export function HeroSection() {
 
           <div className="relative w-full h-full">
             <Image
-              src="/coach-robot.png"
+              src={asset('/coach-robot.png')}
               alt="MindRift Coach — robô coach apontando para o mapa do Summoner's Rift"
               fill
               className="object-contain drop-shadow-[0_0_32px_rgba(200,155,60,0.18)]"

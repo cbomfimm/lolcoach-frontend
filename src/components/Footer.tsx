@@ -1,6 +1,7 @@
 'use client';
 import Image from 'next/image';
 import { Twitter, Instagram } from 'lucide-react';
+import { asset } from '@/lib/assets';
 
 export function Footer() {
   return (
@@ -15,7 +16,7 @@ export function Footer() {
             <div className="relative w-8 h-8 flex items-center justify-center">
               <div className="absolute inset-0 bg-gold/20 rounded-sm rotate-45 group-hover:bg-gold/30 transition-colors" />
               <div className="relative z-10">
-                <Image src="/icon.png" alt="MindRift logo" width={32} height={32} className="rounded-sm object-contain" />
+                <Image src={asset('/icon.png')} alt="MindRift logo" width={32} height={32} className="rounded-sm object-contain" />
               </div>
             </div>
             <span className="font-cinzel text-base font-bold tracking-widest text-gold-light">
