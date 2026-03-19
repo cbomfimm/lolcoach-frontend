@@ -22,6 +22,7 @@ const plans = [
     comingSoon: false,
     description: 'Comece sua jornada no Rift.',
     features: [
+      'Acesso ao dashboard',
       'Suporte à 1 conta do servidor BR',
       'Alertas de objetivos básicos',
     ],
@@ -125,7 +126,12 @@ export function PricingSection() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const handleCta = async (plan: typeof plans[number]) => {
-    if (plan.comingSoon || plan.priceMonthly === 0) return;
+    if (plan.comingSoon) return;
+
+    if (plan.priceMonthly === 0) {
+      router.push(user ? '/dashboard' : '/login');
+      return;
+    }
 
     if (!user) {
       router.push('/login');

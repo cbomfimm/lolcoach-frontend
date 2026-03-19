@@ -190,8 +190,12 @@ export default function DashboardPage() {
           try {
             const p = await getRiotProfileByPuuid(saved.puuid);
             setProfile(p);
-          } catch {
-            setError('Não foi possível carregar o perfil Riot. Verifique sua conexão ou tente recarregar.');
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : '';
+            if (msg.includes('Limite de requisições') || msg.includes('429'))
+              setError('Riot API temporariamente indisponível. Aguarde alguns segundos e recarregue a página.');
+            else
+              setError('Não foi possível carregar o perfil Riot. Verifique sua conexão ou tente recarregar.');
           }
         }
       } catch {
