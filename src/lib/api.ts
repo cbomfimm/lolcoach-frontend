@@ -251,11 +251,16 @@ export interface SummonerProfile {
 }
 
 // Carrega perfil pelo PUUID salvo — auto-load sem re-buscar por nome
+export class SubscriptionRequiredError extends Error {
+  constructor() { super('subscription_required'); }
+}
+
 export async function getRiotProfileByPuuid(puuid: string): Promise<RiotProfile> {
   const res = await fetch(
     `${BACKEND}/api/riot/profile/by-puuid/${encodeURIComponent(puuid)}`,
     { headers: await authHeaders() }
   );
+  if (res.status === 403) throw new SubscriptionRequiredError();
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error((body as { error?: string }).error ?? 'Erro ao carregar perfil.');
@@ -268,6 +273,7 @@ export async function getRiotProfile(summonerName: string): Promise<RiotProfile>
     `${BACKEND}/api/riot/profile/${encodeURIComponent(summonerName)}`,
     { headers: await authHeaders() }
   );
+  if (res.status === 403) throw new SubscriptionRequiredError();
   if (res.status === 404) throw new Error('Invocador não encontrado.');
   if (res.status === 429) throw new Error('Limite de requisições atingido. Aguarde alguns segundos.');
   if (!res.ok) {
@@ -303,6 +309,7 @@ export async function getLiveGame(puuid: string): Promise<LiveGame | null> {
     headers: await authHeaders(),
   });
   if (res.status === 204) return null; // não está em partida
+  if (res.status === 403) throw new SubscriptionRequiredError();
   if (res.status === 429) throw new Error('Limite de requisições. Aguarde alguns segundos.');
   if (!res.ok) throw new Error('Erro ao verificar partida ao vivo.');
   return res.json();

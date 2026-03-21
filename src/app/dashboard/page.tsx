@@ -17,7 +17,7 @@ import { getDDragonVersion, champIconUrl, itemIconUrl, profileIconUrl, getItemsD
 import {
   getRiotProfile, getRiotProfileByPuuid, getMySummoner, getLiveGame,
   getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect, getMatchTimeline,
-  createCheckoutSession,
+  createCheckoutSession, SubscriptionRequiredError,
   type RiotProfile, type MatchSummary, type ChampionStats, type LiveGame, type SummonerProfile,
   type PostGameSession, type PagedResult, type AnalyticsTrend, type ChampSelectEntry,
   type ItemPurchase,
@@ -108,7 +108,11 @@ export default function DashboardPage() {
       const game = await getLiveGame(profile.summoner.puuid);
       setLiveGame(game ?? 'not-in-game');
     } catch (err) {
-      setLiveError(err instanceof Error ? err.message : 'Erro ao verificar partida');
+      if (err instanceof SubscriptionRequiredError) {
+        setShowUpgradeModal(true);
+      } else {
+        setLiveError(err instanceof Error ? err.message : 'Erro ao verificar partida');
+      }
     } finally {
       setLiveLoading(false);
     }
@@ -174,7 +178,12 @@ export default function DashboardPage() {
       setLinkInput('');
       setLiveGame(null);
     } catch (err) {
-      setLinkError(err instanceof Error ? err.message : 'Erro ao vincular conta');
+      if (err instanceof SubscriptionRequiredError) {
+        setShowLinkForm(false);
+        setShowUpgradeModal(true);
+      } else {
+        setLinkError(err instanceof Error ? err.message : 'Erro ao vincular conta');
+      }
     } finally {
       setLinking(false);
     }
@@ -201,11 +210,15 @@ export default function DashboardPage() {
             const p = await getRiotProfileByPuuid(saved.puuid);
             setProfile(p);
           } catch (err) {
-            const msg = err instanceof Error ? err.message : '';
-            if (msg.includes('Limite de requisições') || msg.includes('429'))
-              setError('Riot API temporariamente indisponível. Aguarde alguns segundos e recarregue a página.');
-            else
-              setError('Não foi possível carregar o perfil Riot. Verifique sua conexão ou tente recarregar.');
+            if (err instanceof SubscriptionRequiredError) {
+              setShowUpgradeModal(true);
+            } else {
+              const msg = err instanceof Error ? err.message : '';
+              if (msg.includes('Limite de requisições') || msg.includes('429'))
+                setError('Riot API temporariamente indisponível. Aguarde alguns segundos e recarregue a página.');
+              else
+                setError('Não foi possível carregar o perfil Riot. Verifique sua conexão ou tente recarregar.');
+            }
           }
         }
       } catch {
