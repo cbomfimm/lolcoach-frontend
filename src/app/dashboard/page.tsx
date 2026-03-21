@@ -9,7 +9,7 @@ import {
   Search, AlertCircle, Loader2, ChevronRight,
   Shield, Zap, Eye, Coins, Target, BarChart3,
   CheckCircle2, XCircle, Trash2, BookOpen, History, ChevronDown,
-  ArrowUpRight, ArrowDownRight, Minus,
+  ArrowUpRight, ArrowDownRight, Minus, X, Check,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { asset, route } from '@/lib/assets';
@@ -17,6 +17,7 @@ import { getDDragonVersion, champIconUrl, itemIconUrl, profileIconUrl, getItemsD
 import {
   getRiotProfile, getRiotProfileByPuuid, getMySummoner, getLiveGame,
   getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect, getMatchTimeline,
+  createCheckoutSession,
   type RiotProfile, type MatchSummary, type ChampionStats, type LiveGame, type SummonerProfile,
   type PostGameSession, type PagedResult, type AnalyticsTrend, type ChampSelectEntry,
   type ItemPurchase,
@@ -96,6 +97,7 @@ export default function DashboardPage() {
   const [trend, setTrend]               = useState<AnalyticsTrend | null>(null);
   const [champSelects, setChampSelects] = useState<ChampSelectEntry[]>([]);
   const [coachingLoaded, setCoachingLoaded] = useState(false); // used in EmptySearch fallback
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const handleCheckLiveGame = async () => {
     if (!profile) return;
@@ -147,6 +149,10 @@ export default function DashboardPage() {
   };
 
   const handleTabChange = (tab: DashTab) => {
+    if (tab === 'coaching' && isRookie) {
+      setShowUpgradeModal(true);
+      return;
+    }
     setActiveTab(tab);
     if (tab === 'coaching' && !coachingLoaded) {
       loadCoachingData(true);
@@ -222,7 +228,8 @@ export default function DashboardPage() {
     );
   }
 
-  const isPro = (subscription?.tier === 'grandmaster' || subscription?.tier === 'challenger') && !!subscription?.is_active;
+  const isPro    = (subscription?.tier === 'grandmaster' || subscription?.tier === 'challenger') && !!subscription?.is_active;
+  const isRookie = !isPro;
 
   return (
     <div className="min-h-screen bg-arcane-dark text-gold-light">
@@ -275,7 +282,7 @@ export default function DashboardPage() {
                 {profile?.summoner.name ?? linkedAccount.summonerName}
               </span>
               <button
-                onClick={() => setShowLinkForm(true)}
+                onClick={() => isRookie ? setShowUpgradeModal(true) : setShowLinkForm(true)}
                 className="text-gold/50 hover:text-gold transition-colors text-xs underline underline-offset-2"
               >
                 alterar
@@ -359,11 +366,169 @@ export default function DashboardPage() {
           )
         )}
       </main>
+
+      <AnimatePresence>
+        {showUpgradeModal && (
+          <UpgradeModal onClose={() => setShowUpgradeModal(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // ─── Link Account Modal ───────────────────────────────────────────────────────
+
+// ─── Upgrade Modal ────────────────────────────────────────────────────────────
+
+const GM_FEATURES = [
+  'Briefing de partida na loading screen',
+  'Alertas de Jungle, Visão e Objetivos',
+  'Voz em tempo real (analisadores principais)',
+  'Cobertura para todas as 5 roles',
+  'Dashboard de coaching com histórico',
+  'Análise pós-game com IA',
+  'Alterar conta quando quiser',
+  'Suporte prioritário',
+];
+
+const PRICE_MONTHLY_ID = 'price_1TCZRP2MkVxM8WmWv0qoO4ja';
+const PRICE_YEARLY_ID  = 'price_1TCZSU2MkVxM8WmWj2RvazH6';
+
+function UpgradeModal({ onClose }: { onClose: () => void }) {
+  const [yearly, setYearly]         = useState(false);
+  const [loading, setLoading]       = useState(false);
+
+  const priceDisplay = yearly ? 'R$ 119,00/ano' : 'R$ 14,90/mês';
+  const priceNote    = yearly ? '≈ R$ 9,92/mês — economize 33%' : null;
+
+  const handleUpgrade = async () => {
+    setLoading(true);
+    try {
+      const priceId = yearly ? PRICE_YEARLY_ID : PRICE_MONTHLY_ID;
+      const { url } = await createCheckoutSession(priceId);
+      window.location.href = url;
+    } catch {
+      alert('Erro ao iniciar checkout. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return createPortal(
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-arcane-dark/80 backdrop-blur-md" />
+
+      {/* Card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 16 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        className="relative z-10 w-full max-w-md rounded-sm border border-gold/60 bg-arcane-dark shadow-[0_0_60px_rgba(200,155,60,0.18)] p-8"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gold/30 hover:text-gold transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* Badge */}
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
+          <div className="px-4 py-1 rounded-sm text-xs font-rajdhani font-bold tracking-widest uppercase bg-gold text-arcane-dark">
+            Mais Popular
+          </div>
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-sm bg-gold/20 flex items-center justify-center">
+            <Zap className="w-5 h-5 text-gold" />
+          </div>
+          <div>
+            <div className="font-cinzel font-bold text-gold-light">Grand Master</div>
+            <div className="font-rajdhani text-xs text-gold/40 tracking-wider">O essencial para evoluir no Rift.</div>
+          </div>
+        </div>
+
+        {/* Price toggle */}
+        <div className="flex items-center gap-3 mb-2">
+          <button
+            onClick={() => setYearly(false)}
+            className={`font-rajdhani text-xs tracking-widest uppercase transition-colors ${!yearly ? 'text-gold font-bold' : 'text-gold/40 hover:text-gold/60'}`}
+          >
+            Mensal
+          </button>
+          <button
+            role="switch"
+            aria-checked={yearly}
+            onClick={() => setYearly(v => !v)}
+            className="relative w-10 h-5 rounded-full bg-arcane-panel border border-gold/30"
+          >
+            <motion.div
+              className="absolute top-0.5 w-4 h-4 rounded-full bg-gold"
+              animate={{ left: yearly ? '22px' : '2px' }}
+              transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+            />
+          </button>
+          <button
+            onClick={() => setYearly(true)}
+            className={`font-rajdhani text-xs tracking-widest uppercase transition-colors ${yearly ? 'text-gold font-bold' : 'text-gold/40 hover:text-gold/60'}`}
+          >
+            Anual
+            <span className="ml-1.5 text-[9px] bg-gold/20 text-gold border border-gold/30 px-1 py-0.5 rounded-sm">−33%</span>
+          </button>
+        </div>
+
+        {/* Price */}
+        <div className="mb-1">
+          <span className="font-cinzel text-3xl font-bold text-gold">{priceDisplay}</span>
+        </div>
+        {priceNote && (
+          <p className="font-rajdhani text-xs text-gold/40 mb-6">{priceNote}</p>
+        )}
+        {!priceNote && <div className="mb-6" />}
+
+        {/* Features */}
+        <ul className="space-y-2.5 mb-8">
+          {GM_FEATURES.map(f => (
+            <li key={f} className="flex items-start gap-2.5">
+              <div className="w-4 h-4 rounded-full bg-gold/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Check className="w-2.5 h-2.5 text-gold" />
+              </div>
+              <span className="font-rajdhani text-sm text-gold-light/70">{f}</span>
+            </li>
+          ))}
+        </ul>
+
+        {/* CTA */}
+        <button
+          onClick={handleUpgrade}
+          disabled={loading}
+          className="w-full py-3 rounded-sm bg-gold hover:bg-gold/90 text-arcane-dark font-cinzel font-bold text-sm tracking-widest uppercase transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Aguarde...' : 'Subir de Elo'}
+        </button>
+
+        <p className="text-center font-rajdhani text-xs text-gold/30 mt-3">
+          Cancele quando quiser — sem fidelidade.
+        </p>
+      </motion.div>
+    </motion.div>,
+    document.body
+  );
+}
+
+// ─── Link Account Modal ────────────────────────────────────────────────────────
 
 function LinkAccountModal({ value, onChange, onSubmit, onCancel, loading, error, isFirstTime }: {
   value: string;
