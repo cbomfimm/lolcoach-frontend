@@ -42,6 +42,13 @@ const TIER_COLOR: Record<string, string> = {
   MASTER: '#9b59b6', GRANDMASTER: '#e74c3c', CHALLENGER: '#f39c12',
 };
 
+const TIER_ABBREV: Record<string, string> = {
+  IRON: 'I', BRONZE: 'B', SILVER: 'S', GOLD: 'G', PLATINUM: 'P',
+  EMERALD: 'E', DIAMOND: 'D', MASTER: 'M', GRANDMASTER: 'GM', CHALLENGER: 'C',
+};
+
+const RANK_NUM: Record<string, string> = { I: '1', II: '2', III: '3', IV: '4' };
+
 const STAT_LABELS: Record<string, string> = {
   FlatHPPoolMod: 'Vida', FlatMPPoolMod: 'Mana',
   FlatArmorMod: 'Armadura', FlatSpellBlockMod: 'Resist. Mágica',
@@ -1372,6 +1379,43 @@ function deepLolUrl(server: string, riotId: string): string {
   return `https://www.deeplol.gg/summoner/${server}/${encodeURIComponent(slug)}`;
 }
 
+// ─── Rank badge for live game scoreboard ──────────────────────────────────────
+
+function LiveRankBadge({ tier, rank }: { tier: string; rank: string }) {
+  if (!tier) {
+    return <span className="inline-block w-8 font-rajdhani text-xs text-gold-light/20 text-center select-none">—</span>;
+  }
+  const t      = tier.toUpperCase();
+  const abbr   = TIER_ABBREV[t] ?? t[0];
+  const num    = RANK_NUM[rank] ?? rank;
+  const color  = TIER_COLOR[t] ?? '#c89b3c';
+  const single = ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(t);
+  return (
+    <span className="font-rajdhani font-bold text-xs leading-none" style={{ color }}>
+      {abbr}{single ? '' : num}
+    </span>
+  );
+}
+
+// ─── Ban icon ─────────────────────────────────────────────────────────────────
+
+function BanIcon({ championId, champMap }: { championId: number; champMap: Map<number, string> }) {
+  const icon = champIconUrlById(championId, champMap);
+  const name = getChampionName(championId, champMap);
+  if (championId <= 0) return <div className="w-5 h-5 rounded-sm bg-arcane-panel/50 border border-gold/5" />;
+  return (
+    <div className="relative w-5 h-5 rounded-sm overflow-hidden border border-red-500/25 flex-shrink-0" title={name}>
+      {icon
+        ? <img src={icon} alt={name} width={20} height={20} className="w-full h-full object-cover grayscale opacity-50"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        : <div className="w-full h-full bg-arcane-panel" />}
+      <div className="absolute inset-0 bg-red-900/25" />
+    </div>
+  );
+}
+
+// ─── Live game card ────────────────────────────────────────────────────────────
+
 function LiveGameCard({ game, myPuuid, champMap, spellMap, runeMap }: { game: LiveGame; myPuuid: string } & LiveGameMaps) {
   const mins = Math.floor(game.gameLength / 60);
   const secs = String(game.gameLength % 60).padStart(2, '0');
@@ -1380,7 +1424,7 @@ function LiveGameCard({ game, myPuuid, champMap, spellMap, runeMap }: { game: Li
   return (
     <div className="mt-4">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-3">
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
           <span className="font-rajdhani font-bold text-xs tracking-widest uppercase text-red-400">AO VIVO</span>
@@ -1389,121 +1433,136 @@ function LiveGameCard({ game, myPuuid, champMap, spellMap, runeMap }: { game: Li
         <span className="font-cinzel text-sm text-gold-light/40">{mins}:{secs}</span>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <TeamBlock label="Time Azul" color="arcane-blue" participants={game.blueTeam} bans={game.blueBans} myPuuid={myPuuid} server={game.server} {...maps} />
-        <TeamBlock label="Time Vermelho" color="red-400" participants={game.redTeam} bans={game.redBans} myPuuid={myPuuid} server={game.server} {...maps} />
+      <div className="space-y-3">
+        <TeamBlock label="Time Azul"     isBlue participants={game.blueTeam} bans={game.blueBans} myPuuid={myPuuid} server={game.server} {...maps} />
+        <TeamBlock label="Time Vermelho" isBlue={false} participants={game.redTeam} bans={game.redBans} myPuuid={myPuuid} server={game.server} {...maps} />
       </div>
     </div>
   );
 }
 
-function TeamBlock({ label, color, participants, bans, myPuuid, server, champMap, spellMap, runeMap }: {
-  label: string; color: string;
+function TeamBlock({ label, isBlue, participants, bans, myPuuid, server, champMap, spellMap, runeMap }: {
+  label: string;
+  isBlue: boolean;
   participants: LiveGame['blueTeam'];
   bans: number[];
   myPuuid: string;
   server: string;
 } & LiveGameMaps) {
-  const borderColor = color === 'arcane-blue' ? 'border-arcane-blue/20' : 'border-red-400/20';
-  const textColor   = color === 'arcane-blue' ? 'text-arcane-blue' : 'text-red-400';
+  const headerBg    = isBlue ? 'bg-arcane-blue/10 border-arcane-blue/20' : 'bg-red-500/10 border-red-500/20';
+  const headerText  = isBlue ? 'text-arcane-blue' : 'text-red-400';
+  const activeBorder = isBlue ? 'border-arcane-blue/30' : 'border-red-500/30';
 
   return (
-    <div className={`border ${borderColor} rounded-sm p-3 bg-arcane-dark/40`}>
-      <div className={`font-rajdhani font-bold text-xs tracking-widest uppercase ${textColor} mb-3`}>{label}</div>
-      <div className="space-y-1.5">
+    <div className="rounded-sm overflow-hidden border border-gold/10 bg-arcane-dark/30">
+      {/* Team header */}
+      <div className={`flex items-center justify-between px-3 py-1.5 border-b ${headerBg}`}>
+        <span className={`font-rajdhani font-bold text-xs tracking-widest uppercase ${headerText}`}>{label}</span>
+        {/* Bans */}
+        <div className="flex items-center gap-1">
+          <span className="font-rajdhani text-xs text-gold-light/25 mr-1">Bans:</span>
+          {bans.map((id, i) => <BanIcon key={i} championId={id} champMap={champMap} />)}
+        </div>
+      </div>
+
+      {/* Column headers */}
+      <div className="grid items-center px-2 py-1 border-b border-gold/5"
+        style={{ gridTemplateColumns: '28px 40px 34px 1fr auto' }}>
+        <span className="font-rajdhani text-[10px] text-gold-light/20 uppercase tracking-wider">Rank</span>
+        <span />
+        <span />
+        <span className="font-rajdhani text-[10px] text-gold-light/20 uppercase tracking-wider">Jogador</span>
+        <span className="font-rajdhani text-[10px] text-gold-light/20 uppercase tracking-wider text-right">W/L</span>
+      </div>
+
+      {/* Participants */}
+      <div className="divide-y divide-gold/[0.04]">
         {participants.map((p) => {
-          const isMe      = p.puuid === myPuuid;
-          const champName = getChampionName(p.championId, champMap);
-          const champIcon = champIconUrlById(p.championId, champMap);
-          const spell1    = spellIconUrlById(p.spell1Id, spellMap);
-          const spell2    = spellIconUrlById(p.spell2Id, spellMap);
-          const runeIcon  = runeMap.get(p.primaryRune) ?? '';
+          const isMe       = p.puuid === myPuuid;
+          const champName  = getChampionName(p.championId, champMap);
+          const champIcon  = champIconUrlById(p.championId, champMap);
+          const spell1Url  = spellIconUrlById(p.spell1Id, spellMap);
+          const spell2Url  = spellIconUrlById(p.spell2Id, spellMap);
+          const keystoneUrl = runeMap.get(p.primaryRune) ?? '';
+          const subStyleUrl = runeMap.get(p.perkSubStyle) ?? '';
           const displayName = p.riotId || p.summonerName || 'Invocador';
           const profileUrl  = p.riotId ? deepLolUrl(server, p.riotId) : null;
+          const total       = (p.wins ?? 0) + (p.losses ?? 0);
+          const wr          = total > 0 ? Math.round((p.wins ?? 0) * 100 / total) : null;
 
           return (
-            <div key={p.puuid} className={`flex items-center gap-2 px-2 py-1.5 rounded-sm ${isMe ? 'bg-gold/10 border border-gold/20' : ''}`}>
+            <div
+              key={p.puuid}
+              className={`grid items-center gap-1.5 px-2 py-2 transition-colors ${
+                isMe ? `${isBlue ? 'bg-arcane-blue/[0.07]' : 'bg-red-500/[0.07]'} border-l-2 ${activeBorder}` : 'hover:bg-gold/[0.02]'
+              }`}
+              style={{ gridTemplateColumns: '28px 40px 34px 1fr auto' }}
+            >
+              {/* Rank badge */}
+              <div className="flex items-center justify-center">
+                <LiveRankBadge tier={p.tier ?? ''} rank={p.rank ?? ''} />
+              </div>
+
               {/* Champion icon */}
-              <div className="w-9 h-9 rounded-sm overflow-hidden bg-arcane-panel border border-gold/10 flex-shrink-0">
-                {champIcon ? (
-                  <img src={champIcon} alt={champName} width={36} height={36} className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Swords className="w-3.5 h-3.5 text-gold/30" />
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-arcane-panel border-2 border-gold/15 flex-shrink-0">
+                {champIcon
+                  ? <img src={champIcon} alt={champName} width={40} height={40} className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  : <div className="w-full h-full flex items-center justify-center"><Swords className="w-4 h-4 text-gold/30" /></div>}
+              </div>
+
+              {/* Spells (left col) + Runes (right col) */}
+              <div className="flex gap-0.5">
+                <div className="flex flex-col gap-0.5">
+                  {[spell1Url, spell2Url].map((url, si) => url
+                    ? <img key={si} src={url} alt="" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    : <div key={si} className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />
+                  )}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  {[keystoneUrl, subStyleUrl].map((url, ri) => url
+                    ? <img key={ri} src={url} alt="" width={16} height={16} className="w-4 h-4 opacity-80"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    : <div key={ri} className="w-4 h-4 rounded-full bg-arcane-panel/50" />
+                  )}
+                </div>
+              </div>
+
+              {/* Name + champion */}
+              <div className="min-w-0">
+                <div className={`font-rajdhani font-bold text-sm leading-tight truncate ${isMe ? headerText : 'text-gold-light/90'}`}>
+                  {displayName}
+                  {isMe && <span className="ml-1 opacity-50 font-normal text-xs">(você)</span>}
+                </div>
+                <div className="font-rajdhani text-xs text-gold-light/35 truncate">{champName}</div>
+              </div>
+
+              {/* W/L + link */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {p.tier && total > 0 && (
+                  <div className="text-right">
+                    <div className="font-rajdhani text-xs text-gold-light/50">
+                      {p.wins}W {p.losses}L
+                    </div>
+                    {wr !== null && (
+                      <div className={`font-rajdhani text-[10px] ${wr >= 60 ? 'text-gold' : wr >= 50 ? 'text-arcane-blue' : 'text-red-400/70'}`}>
+                        {wr}%
+                      </div>
+                    )}
                   </div>
                 )}
+                {profileUrl
+                  ? <a href={profileUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-gold/25 hover:text-gold/70 transition-colors" title={`Ver no DeepLol`}>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  : <div className="w-3 h-3" />}
               </div>
-
-              {/* Champion name + summoner name */}
-              <div className="min-w-0 flex-1">
-                <div className="font-cinzel font-bold text-xs truncate text-gold-light/90">{champName}</div>
-                <div className={`font-rajdhani text-xs truncate ${isMe ? 'text-gold font-bold' : 'text-gold-light/50'}`}>
-                  {displayName}
-                  {isMe && <span className="ml-1 text-gold/50 font-normal">(você)</span>}
-                </div>
-              </div>
-
-              {/* Spells + keystone */}
-              <div className="flex flex-col gap-0.5 flex-shrink-0">
-                <div className="flex gap-0.5">
-                  {spell1 ? (
-                    <img src={spell1} alt="D" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  ) : <div className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />}
-                  {spell2 ? (
-                    <img src={spell2} alt="F" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  ) : <div className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />}
-                </div>
-                <div className="flex justify-center">
-                  {runeIcon ? (
-                    <img src={runeIcon} alt="rune" width={16} height={16} className="w-4 h-4 opacity-80"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  ) : <div className="w-4 h-4 rounded-full bg-arcane-panel border border-gold/10" />}
-                </div>
-              </div>
-
-              {/* DeepLol link */}
-              {profileUrl ? (
-                <a href={profileUrl} target="_blank" rel="noopener noreferrer"
-                  className="flex-shrink-0 text-gold/30 hover:text-gold/70 transition-colors"
-                  title={`Ver ${displayName} no DeepLol`}>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              ) : (
-                <div className="w-3.5 h-3.5 flex-shrink-0" />
-              )}
             </div>
           );
         })}
       </div>
-
-      {/* Bans */}
-      {bans.filter(b => b > 0).length > 0 && (
-        <div className="mt-3 pt-3 border-t border-gold/10">
-          <div className="font-rajdhani text-xs text-gold-light/30 mb-1.5 uppercase tracking-wider">Bans</div>
-          <div className="flex flex-wrap gap-1.5">
-            {bans.filter(b => b > 0).map((id, i) => {
-              const banIcon = champIconUrlById(id, champMap);
-              const banName = getChampionName(id, champMap);
-              return (
-                <div key={i} className="relative w-6 h-6 rounded-sm overflow-hidden border border-red-500/30 flex-shrink-0" title={banName}>
-                  {banIcon ? (
-                    <img src={banIcon} alt={banName} width={24} height={24} className="w-full h-full object-cover grayscale opacity-60"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  ) : (
-                    <div className="w-full h-full bg-arcane-panel flex items-center justify-center">
-                      <XCircle className="w-3 h-3 text-red-400/50" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-red-900/30" />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1745,9 +1804,16 @@ function MatchRow({ match: m, ddItems, puuid, index }: {
   const trinketId    = m.items[6] ?? 0;
   const compactSlots = isAdc ? [...coreItems, trinketId, 0] : [...coreItems, trinketId];
 
-  const accentColor = m.win ? 'bg-arcane-blue' : 'bg-red-500';
-  const rowBg       = m.win ? 'bg-arcane-blue/[0.04] hover:bg-arcane-blue/[0.08]' : 'bg-red-500/[0.04] hover:bg-red-500/[0.07]';
-  const borderColor = m.win ? 'border-arcane-blue/20 hover:border-arcane-blue/40' : 'border-red-500/20 hover:border-red-500/35';
+  const isRemake    = m.isRemake === true;
+  const accentColor = isRemake ? 'bg-gold-light/20'
+                    : m.win    ? 'bg-arcane-blue'
+                               : 'bg-red-500';
+  const rowBg       = isRemake ? 'bg-gold-light/[0.02] hover:bg-gold-light/[0.05]'
+                    : m.win    ? 'bg-arcane-blue/[0.04] hover:bg-arcane-blue/[0.08]'
+                               : 'bg-red-500/[0.04] hover:bg-red-500/[0.07]';
+  const borderColor = isRemake ? 'border-gold-light/10 hover:border-gold-light/20'
+                    : m.win    ? 'border-arcane-blue/20 hover:border-arcane-blue/40'
+                               : 'border-red-500/20 hover:border-red-500/35';
 
   return (
     <motion.div
@@ -1780,9 +1846,11 @@ function MatchRow({ match: m, ddItems, puuid, index }: {
         {/* Result badge */}
         <div className="flex-shrink-0">
           <span className={`font-rajdhani font-bold text-xs px-2 py-0.5 rounded-sm ${
-            m.win ? 'bg-arcane-blue/20 text-arcane-blue border border-arcane-blue/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
+            isRemake ? 'bg-gold-light/10 text-gold-light/40 border border-gold-light/15'
+            : m.win  ? 'bg-arcane-blue/20 text-arcane-blue border border-arcane-blue/30'
+                     : 'bg-red-500/20 text-red-400 border border-red-500/30'
           }`}>
-            {m.win ? 'WIN' : 'LOSS'}
+            {isRemake ? 'REMAKE' : m.win ? 'WIN' : 'LOSS'}
           </span>
         </div>
 

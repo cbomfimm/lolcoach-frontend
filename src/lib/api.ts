@@ -168,6 +168,7 @@ export interface MatchSummary {
   championId: number;
   role: string;
   win: boolean;
+  isRemake: boolean;
   kills: number;
   deaths: number;
   assists: number;
@@ -295,6 +296,12 @@ export interface LiveParticipant {
   perkStyle: number;
   perkSubStyle: number;
   allPerks: number[];
+  // Rank (Solo/Duo)
+  tier: string;
+  rank: string;
+  lp: number;
+  wins: number;
+  losses: number;
 }
 
 export interface LiveGame {
