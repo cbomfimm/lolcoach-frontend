@@ -169,6 +169,16 @@ export interface MatchSummary {
   role: string;
   win: boolean;
   isRemake: boolean;
+  // Spells / Runes (new)
+  spell1Id: number;
+  spell2Id: number;
+  primaryRune: number;
+  perkStyle: number;
+  perkSubStyle: number;
+  // Timing (new)
+  gameStartTimestamp: number;
+  queueName: string;
+  // Stats
   kills: number;
   deaths: number;
   assists: number;
@@ -200,6 +210,40 @@ export interface MatchSummary {
   eCasts: number;
   rCasts: number;
   participantId: number;
+}
+
+export interface MatchDetailsParticipant {
+  puuid: string;
+  riotId: string;
+  championId: number;
+  championName: string;
+  teamId: number;
+  win: boolean;
+  kills: number;
+  deaths: number;
+  assists: number;
+  kda: number;
+  cs: number;
+  damageToChamps: number;
+  damagePercent: number;
+  goldEarned: number;
+  visionScore: number;
+  wardsPlaced: number;
+  spell1Id: number;
+  spell2Id: number;
+  primaryRune: number;
+  perkStyle: number;
+  perkSubStyle: number;
+  items: number[];
+  isRemake: boolean;
+}
+
+export interface MatchDetails {
+  gameStartTimestamp: number;
+  gameDurationSecs: number;
+  queueName: string;
+  blueTeam: MatchDetailsParticipant[];
+  redTeam: MatchDetailsParticipant[];
 }
 
 export interface ItemPurchase {
@@ -342,6 +386,15 @@ export async function getMatchTimeline(matchId: string, puuid: string): Promise<
     { headers: await authHeaders() }
   );
   if (!res.ok) throw new Error('Erro ao buscar timeline da partida.');
+  return res.json();
+}
+
+export async function getMatchDetails(matchId: string): Promise<MatchDetails> {
+  const res = await fetch(
+    `${BACKEND}/api/riot/match/${encodeURIComponent(matchId)}/details`,
+    { headers: await authHeaders() }
+  );
+  if (!res.ok) throw new Error('Erro ao buscar detalhes da partida.');
   return res.json();
 }
 

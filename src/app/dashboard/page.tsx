@@ -21,11 +21,12 @@ import {
 } from '@/lib/ddragon';
 import {
   getRiotProfile, getRiotProfileByPuuid, getMySummoner, getLiveGame,
-  getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect, getMatchTimeline,
+  getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect,
+  getMatchTimeline, getMatchDetails,
   createCheckoutSession, SubscriptionRequiredError,
   type RiotProfile, type MatchSummary, type ChampionStats, type LiveGame, type SummonerProfile,
   type PostGameSession, type PagedResult, type AnalyticsTrend, type ChampSelectEntry,
-  type ItemPurchase,
+  type ItemPurchase, type MatchDetails, type MatchDetailsParticipant,
 } from '@/lib/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -64,6 +65,22 @@ const STAT_LABELS: Record<string, string> = {
 
 function fmtDuration(secs: number) {
   return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+}
+
+function timeAgo(timestampMs: number): string {
+  if (!timestampMs) return '';
+  const diff  = Date.now() - timestampMs;
+  const mins  = Math.floor(diff / 60_000);
+  const hours = Math.floor(diff / 3_600_000);
+  const days  = Math.floor(diff / 86_400_000);
+  if (mins  < 60) return `${mins}min atrás`;
+  if (hours < 24) return `${hours}h atrás`;
+  if (days  < 30) return `${days}d atrás`;
+  return `${Math.floor(days / 30)}m atrás`;
+}
+
+function fmtGold(g: number): string {
+  return g >= 1000 ? `${(g / 1000).toFixed(1)}k` : String(g);
 }
 
 function winRateColor(wr: number) {
@@ -1339,7 +1356,7 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
       <div className="bg-arcane-panel border border-gold/20 rounded-sm p-6">
         <SectionTitle icon={<Zap className="w-4 h-4 text-gold" />} title="Partidas Recentes" />
         <div className="mt-4 space-y-2">
-          {recentMatches.map((m, i) => <MatchRow key={m.matchId} match={m} ddItems={ddItems} puuid={summoner.puuid} index={i} />)}
+          {recentMatches.map((m, i) => <MatchRow key={m.matchId} match={m} ddItems={ddItems} puuid={summoner.puuid} index={i} champMap={champMap} spellMap={spellMap} runeMap={runeMap} />)}
         </div>
       </div>
 
@@ -1775,45 +1792,50 @@ function ItemSlot({ id, ddItems, size = 28 }: { id: number; ddItems: Record<stri
   );
 }
 
-function MatchRow({ match: m, ddItems, puuid, index }: {
+function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap }: {
   match: MatchSummary;
   ddItems: Record<string, DDragonItemInfo>;
   puuid: string;
   index: number;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const [timeline, setTimeline] = useState<ItemPurchase[] | null>(null);
-  const [timelineLoading, setTimelineLoading] = useState(false);
+} & LiveGameMaps) {
+  const [expanded, setExpanded]         = useState(false);
+  const [timeline, setTimeline]         = useState<ItemPurchase[] | null>(null);
+  const [timelineLoading, setTlLoading] = useState(false);
+  const [details, setDetails]           = useState<MatchDetails | null>(null);
+  const [detailsLoading, setDlLoading]  = useState(false);
 
   const handleExpand = () => {
     setExpanded(v => !v);
-    if (!expanded && timeline === null) {
-      setTimelineLoading(true);
-      getMatchTimeline(m.matchId, puuid)
-        .then(data => setTimeline(data.items))
-        .catch(() => setTimeline([]))
-        .finally(() => setTimelineLoading(false));
+    if (!expanded) {
+      if (timeline === null) {
+        setTlLoading(true);
+        getMatchTimeline(m.matchId, puuid)
+          .then(data => setTimeline(data.items))
+          .catch(() => setTimeline([]))
+          .finally(() => setTlLoading(false));
+      }
+      if (details === null) {
+        setDlLoading(true);
+        getMatchDetails(m.matchId)
+          .then(setDetails)
+          .catch(() => setDetails(null))
+          .finally(() => setDlLoading(false));
+      }
     }
   };
 
-  const cs    = m.cs;
-  const csm   = m.csPerMin;
-  const isAdc = m.role === 'BOTTOM';
-
-  const coreItems    = m.items.slice(0, 6);
-  const trinketId    = m.items[6] ?? 0;
-  const compactSlots = isAdc ? [...coreItems, trinketId, 0] : [...coreItems, trinketId];
-
   const isRemake    = m.isRemake === true;
-  const accentColor = isRemake ? 'bg-gold-light/20'
-                    : m.win    ? 'bg-arcane-blue'
-                               : 'bg-red-500';
-  const rowBg       = isRemake ? 'bg-gold-light/[0.02] hover:bg-gold-light/[0.05]'
-                    : m.win    ? 'bg-arcane-blue/[0.04] hover:bg-arcane-blue/[0.08]'
-                               : 'bg-red-500/[0.04] hover:bg-red-500/[0.07]';
-  const borderColor = isRemake ? 'border-gold-light/10 hover:border-gold-light/20'
-                    : m.win    ? 'border-arcane-blue/20 hover:border-arcane-blue/40'
-                               : 'border-red-500/20 hover:border-red-500/35';
+  const accentColor = isRemake ? 'bg-gold-light/20' : m.win ? 'bg-arcane-blue' : 'bg-red-500';
+  const rowBg       = isRemake ? 'bg-gold-light/[0.02]' : m.win ? 'bg-arcane-blue/[0.04]' : 'bg-red-500/[0.04]';
+  const borderColor = isRemake ? 'border-gold-light/10' : m.win ? 'border-arcane-blue/20' : 'border-red-500/20';
+  const isAdc       = m.role === 'BOTTOM';
+  const coreItems   = m.items.slice(0, 6);
+  const trinketId   = m.items[6] ?? 0;
+
+  const spell1Url  = m.spell1Id  ? spellIconUrlById(m.spell1Id, spellMap)  : '';
+  const spell2Url  = m.spell2Id  ? spellIconUrlById(m.spell2Id, spellMap)  : '';
+  const keystoneUrl = m.primaryRune  ? runeMap.get(m.primaryRune)  ?? '' : '';
+  const subPathUrl  = m.perkSubStyle ? runeMap.get(m.perkSubStyle) ?? '' : '';
 
   return (
     <motion.div
@@ -1825,27 +1847,43 @@ function MatchRow({ match: m, ddItems, puuid, index }: {
       {/* Left accent bar */}
       <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${accentColor}`} />
 
-      {/* ── Main row ── */}
+      {/* ── Compact row ── */}
       <div
-        className="flex items-center gap-3 pl-5 pr-4 py-3 cursor-pointer select-none"
+        className="flex items-center gap-2 pl-4 pr-3 py-2.5 cursor-pointer select-none"
         onClick={handleExpand}
       >
-        {/* Champion icon */}
-        <div className="w-10 h-10 rounded-sm overflow-hidden flex-shrink-0 border border-white/15 shadow-md">
+        {/* Champion icon (circular) */}
+        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-white/15 shadow-md">
           <img src={champIconUrl(m.champion)} alt={m.champion} width={40} height={40}
             className="w-full h-full object-cover"
             onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} />
         </div>
 
+        {/* Spells + runes (2×2 grid) */}
+        <div className="flex gap-0.5 flex-shrink-0">
+          <div className="flex flex-col gap-0.5">
+            {spell1Url ? <img src={spell1Url} alt="D" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+              : <div className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />}
+            {spell2Url ? <img src={spell2Url} alt="F" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+              : <div className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />}
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {keystoneUrl ? <img src={keystoneUrl} alt="" width={16} height={16} className="w-4 h-4" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+              : <div className="w-4 h-4 rounded-full bg-arcane-panel/50" />}
+            {subPathUrl ? <img src={subPathUrl} alt="" width={16} height={16} className="w-4 h-4 opacity-70" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+              : <div className="w-4 h-4 rounded-full bg-arcane-panel/30" />}
+          </div>
+        </div>
+
         {/* Champion + role */}
-        <div className="w-24 flex-shrink-0">
-          <div className="font-cinzel font-bold text-sm text-white truncate">{m.champion}</div>
-          <div className="font-rajdhani text-xs text-gold-light/55">{ROLE_LABEL[m.role] ?? m.role}</div>
+        <div className="w-[88px] flex-shrink-0">
+          <div className="font-cinzel font-bold text-xs text-white truncate">{m.champion}</div>
+          <div className="font-rajdhani text-[11px] text-gold-light/50">{ROLE_LABEL[m.role] ?? m.role}</div>
         </div>
 
         {/* Result badge */}
         <div className="flex-shrink-0">
-          <span className={`font-rajdhani font-bold text-xs px-2 py-0.5 rounded-sm ${
+          <span className={`font-rajdhani font-bold text-[10px] px-1.5 py-0.5 rounded-sm ${
             isRemake ? 'bg-gold-light/10 text-gold-light/40 border border-gold-light/15'
             : m.win  ? 'bg-arcane-blue/20 text-arcane-blue border border-arcane-blue/30'
                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
@@ -1859,39 +1897,30 @@ function MatchRow({ match: m, ddItems, puuid, index }: {
           <div className={`font-cinzel font-bold text-sm ${kdaColor(m.kda)}`}>
             {m.kills}/{m.deaths}/{m.assists}
           </div>
-          <div className="font-rajdhani text-xs text-gold-light/45">{m.kda} KDA</div>
+          <div className="font-rajdhani text-[11px] text-gold-light/45">{m.kda} KDA</div>
         </div>
 
         {/* CS */}
-        <div className="hidden sm:block text-right flex-shrink-0 w-16">
-          <div className="font-rajdhani font-bold text-sm text-white/80">{cs} CS</div>
-          <div className="font-rajdhani text-xs text-gold-light/45">{csm}/min</div>
-        </div>
-
-        {/* Vision */}
-        <div className="hidden md:block text-right flex-shrink-0 w-12">
-          <div className="font-rajdhani font-bold text-sm text-white/70">{m.visionScore}</div>
-          <div className="font-rajdhani text-xs text-gold-light/40">visão</div>
+        <div className="hidden sm:block text-right flex-shrink-0 w-14">
+          <div className="font-rajdhani font-bold text-sm text-white/80">{m.cs} CS</div>
+          <div className="font-rajdhani text-[11px] text-gold-light/45">{m.csPerMin}/min</div>
         </div>
 
         {/* Items compact */}
-        <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
-          {compactSlots.map((id, idx) => (
-            <div key={idx} className={idx === 6 ? 'ml-1.5' : ''}>
-              <ItemSlot id={id} ddItems={ddItems} size={28} />
-            </div>
-          ))}
+        <div className="hidden lg:flex items-center gap-0.5 flex-shrink-0">
+          {coreItems.map((id, idx) => <ItemSlot key={idx} id={id} ddItems={ddItems} size={26} />)}
+          <div className="w-px bg-white/10 mx-1 self-stretch" />
+          <ItemSlot id={trinketId} ddItems={ddItems} size={26} />
         </div>
 
-        {/* Duration + expand */}
-        <div className="flex items-center gap-2 flex-shrink-0 ml-1">
-          <div className="font-rajdhani text-xs text-gold-light/50 w-10 text-right">
-            {fmtDuration(Number(m.gameDurationSecs))}
-          </div>
-          <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
-            <ChevronDown className="w-4 h-4 text-gold-light/50" />
-          </motion.div>
+        {/* Time ago + duration + chevron */}
+        <div className="flex flex-col items-end gap-0 flex-shrink-0 ml-1">
+          <div className="font-rajdhani text-[11px] text-gold-light/60">{timeAgo(m.gameStartTimestamp)}</div>
+          <div className="font-rajdhani text-[10px] text-gold-light/35">{fmtDuration(Number(m.gameDurationSecs))}</div>
         </div>
+        <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown className="w-4 h-4 text-gold-light/40 ml-1 flex-shrink-0" />
+        </motion.div>
       </div>
 
       {/* ── Expanded panel ── */}
@@ -1905,107 +1934,234 @@ function MatchRow({ match: m, ddItems, puuid, index }: {
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-5 pt-3 border-t border-white/8 space-y-4">
+            <div className="border-t border-white/8">
 
-              {/* Build Final */}
-              <div>
-                <SectionHeader label={`Build Final${isAdc ? ' — ADC' : ''}`} color="bg-gold" />
-                <div className="flex flex-wrap gap-1.5">
-                  {coreItems.map((id, idx) => (
-                    <ItemSlot key={idx} id={id} ddItems={ddItems} size={38} />
-                  ))}
-                  <div className="w-px bg-white/10 mx-1 self-stretch" />
-                  <div className="flex flex-col items-center gap-0.5">
-                    <ItemSlot id={trinketId} ddItems={ddItems} size={38} />
-                    <span className="font-rajdhani text-[9px] text-gold-light/45">trinket</span>
+              {/* ── Scoreboard de todos os jogadores ── */}
+              {detailsLoading && (
+                <div className="flex items-center gap-2 px-5 py-3 text-gold-light/50 font-rajdhani text-xs">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando scoreboard...
+                </div>
+              )}
+              {details && (
+                <div className="space-y-0">
+                  <MatchScoreboard
+                    team={details.blueTeam} isBlue myPuuid={puuid}
+                    ddItems={ddItems} champMap={champMap} spellMap={spellMap} runeMap={runeMap}
+                  />
+                  <MatchScoreboard
+                    team={details.redTeam} isBlue={false} myPuuid={puuid}
+                    ddItems={ddItems} champMap={champMap} spellMap={spellMap} runeMap={runeMap}
+                  />
+                </div>
+              )}
+
+              {/* ── Stats do jogador principal ── */}
+              <div className="px-4 pb-4 pt-3 space-y-3">
+                {/* Combat */}
+                <div>
+                  <SectionHeader label="Combate" color="bg-red-400" />
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                    <ExpandStat label="Dano Causado"   value={m.damageToChamps.toLocaleString('pt-BR')} />
+                    <ExpandStat label="Dano Recebido"  value={m.damageTaken.toLocaleString('pt-BR')} />
+                    <ExpandStat label="Cura Total"     value={m.totalHeal.toLocaleString('pt-BR')} />
+                    <ExpandStat label="Dano a Obj."    value={m.damageToObjectives.toLocaleString('pt-BR')} />
+                    {m.turretKills > 0    && <ExpandStat label="Torres"        value={String(m.turretKills)} />}
+                    {m.killingSprees > 0  && <ExpandStat label="Sprees"        value={String(m.killingSprees)} />}
+                    {m.pentaKills > 0     && <ExpandStat label="Pentas"        value={String(m.pentaKills)} highlight />}
+                    {m.objectivesStolen > 0 && <ExpandStat label="Obj. Roubados" value={String(m.objectivesStolen)} highlight />}
+                    {m.firstBlood         && <ExpandStat label="First Blood"   value="Sim" highlight />}
                   </div>
-                  {isAdc && (
-                    <div className="flex flex-col items-center gap-0.5">
-                      <div className="w-[38px] h-[38px] rounded-sm bg-white/5 border border-white/10 border-dashed flex items-center justify-center">
-                        <span className="font-rajdhani text-[9px] text-gold-light/30">Elix</span>
-                      </div>
-                      <span className="font-rajdhani text-[9px] text-gold-light/45">elixir</span>
+                </div>
+
+                {/* Vision & Economy */}
+                <div>
+                  <SectionHeader label="Visão & Economia" color="bg-arcane-blue" />
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                    <ExpandStat label="Visão"          value={String(m.visionScore)} />
+                    <ExpandStat label="Wards Colocadas" value={String(m.wardsPlaced)} />
+                    <ExpandStat label="Wards Destruídas" value={String(m.wardsKilled)} />
+                    <ExpandStat label="Wards Controle" value={String(m.controlWardsBought)} />
+                    <ExpandStat label="Ouro Ganho"     value={m.goldEarned.toLocaleString('pt-BR')} />
+                    <ExpandStat label="Ouro Gasto"     value={m.goldSpent.toLocaleString('pt-BR')} />
+                    <ExpandStat label="Tempo Morto"    value={`${Math.floor(m.timeDeadSecs/60)}m ${m.timeDeadSecs%60}s`} />
+                    <ExpandStat label="CC Aplicado"    value={`${m.crowdControlScore}s`} />
+                  </div>
+                </div>
+
+                {/* Spell casts */}
+                <div>
+                  <SectionHeader label="Usos de Habilidades" color="bg-purple-400" />
+                  <div className="grid grid-cols-4 gap-2">
+                    {([['Q', m.qCasts], ['W', m.wCasts], ['E', m.eCasts], ['R', m.rCasts]] as const).map(([k, v]) => (
+                      <ExpandStat key={k} label={k} value={String(v)} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Item timeline */}
+                <div>
+                  <SectionHeader label="Ordem de Compras" color="bg-gold/70" />
+                  {timelineLoading && (
+                    <div className="flex items-center gap-2 text-gold-light/50 font-rajdhani text-xs">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando timeline...
+                    </div>
+                  )}
+                  {!timelineLoading && timeline?.length === 0 && (
+                    <div className="text-gold-light/35 font-rajdhani text-xs">Timeline não disponível.</div>
+                  )}
+                  {!timelineLoading && timeline && timeline.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {timeline.map((ev, idx) => (
+                        <motion.div key={idx}
+                          initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: idx * 0.025, duration: 0.2 }}
+                          className="flex flex-col items-center gap-0.5">
+                          <ItemSlot id={ev.itemId} ddItems={ddItems} size={32} />
+                          <span className="font-rajdhani text-[9px] text-gold-light/55">
+                            {ev.minuteMark}:{String(ev.secondMark).padStart(2, '0')}
+                          </span>
+                        </motion.div>
+                      ))}
                     </div>
                   )}
                 </div>
               </div>
-
-              {/* Combat */}
-              <div>
-                <SectionHeader label="Combate" color="bg-red-400" />
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-                  <ExpandStat label="Dano Causado" value={m.damageToChamps.toLocaleString('pt-BR')} />
-                  <ExpandStat label="Dano Recebido" value={m.damageTaken.toLocaleString('pt-BR')} />
-                  <ExpandStat label="Cura Total" value={m.totalHeal.toLocaleString('pt-BR')} />
-                  <ExpandStat label="Dano a Obj." value={m.damageToObjectives.toLocaleString('pt-BR')} />
-                  {m.turretKills > 0 && <ExpandStat label="Torres" value={String(m.turretKills)} />}
-                  {m.killingSprees > 0 && <ExpandStat label="Sprees" value={String(m.killingSprees)} />}
-                  {m.pentaKills > 0 && <ExpandStat label="Pentas" value={String(m.pentaKills)} highlight />}
-                  {m.objectivesStolen > 0 && <ExpandStat label="Obj. Roubados" value={String(m.objectivesStolen)} highlight />}
-                  {m.firstBlood && <ExpandStat label="First Blood" value="Sim" highlight />}
-                </div>
-              </div>
-
-              {/* Vision & Economy */}
-              <div>
-                <SectionHeader label="Visão & Economia" color="bg-arcane-blue" />
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-                  <ExpandStat label="Visão" value={String(m.visionScore)} />
-                  <ExpandStat label="Wards Colocadas" value={String(m.wardsPlaced)} />
-                  <ExpandStat label="Wards Destruídas" value={String(m.wardsKilled)} />
-                  <ExpandStat label="Wards Controle" value={String(m.controlWardsBought)} />
-                  <ExpandStat label="Ouro Ganho" value={m.goldEarned.toLocaleString('pt-BR')} />
-                  <ExpandStat label="Ouro Gasto" value={m.goldSpent.toLocaleString('pt-BR')} />
-                  <ExpandStat label="Tempo Morto" value={`${Math.floor(m.timeDeadSecs / 60)}m ${m.timeDeadSecs % 60}s`} />
-                  <ExpandStat label="CC Aplicado" value={`${m.crowdControlScore}s`} />
-                </div>
-              </div>
-
-              {/* Spell casts */}
-              <div>
-                <SectionHeader label="Usos de Habilidades" color="bg-purple-400" />
-                <div className="grid grid-cols-4 gap-2">
-                  {[['Q', m.qCasts], ['W', m.wCasts], ['E', m.eCasts], ['R', m.rCasts]].map(([k, v]) => (
-                    <ExpandStat key={String(k)} label={String(k)} value={String(v)} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Item timeline */}
-              <div>
-                <SectionHeader label="Ordem de Compras" color="bg-gold/70" />
-                {timelineLoading && (
-                  <div className="flex items-center gap-2 text-gold-light/50 font-rajdhani text-xs">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando timeline...
-                  </div>
-                )}
-                {!timelineLoading && timeline?.length === 0 && (
-                  <div className="text-gold-light/35 font-rajdhani text-xs">Timeline não disponível.</div>
-                )}
-                {!timelineLoading && timeline && timeline.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {timeline.map((ev, idx) => (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: idx * 0.025, duration: 0.2 }}
-                        className="flex flex-col items-center gap-0.5"
-                      >
-                        <ItemSlot id={ev.itemId} ddItems={ddItems} size={32} />
-                        <span className="font-rajdhani text-[9px] text-gold-light/55">
-                          {ev.minuteMark}:{String(ev.secondMark).padStart(2, '0')}
-                        </span>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+// ─── Match Scoreboard (expanded view, all 10 players) ─────────────────────────
+
+function MatchScoreboard({ team, isBlue, myPuuid, ddItems, champMap, spellMap, runeMap }: {
+  team: MatchDetailsParticipant[];
+  isBlue: boolean;
+  myPuuid: string;
+  ddItems: Record<string, DDragonItemInfo>;
+} & LiveGameMaps) {
+  const maxDmg = Math.max(...team.map(p => p.damageToChamps), 1);
+  const headerBg   = isBlue ? 'bg-arcane-blue/10 border-arcane-blue/20' : 'bg-red-500/10 border-red-500/20';
+  const headerText = isBlue ? 'text-arcane-blue' : 'text-red-400';
+  const accentBorder = isBlue ? 'border-l-arcane-blue/40' : 'border-l-red-500/40';
+  const winLabel = team[0]?.win ? (isBlue ? 'VITÓRIA' : 'DERROTA') : (isBlue ? 'DERROTA' : 'VITÓRIA');
+  const winColor = team[0]?.win ? (isBlue ? 'text-arcane-blue' : 'text-red-400') : (isBlue ? 'text-red-400' : 'text-arcane-blue');
+
+  return (
+    <div>
+      {/* Header */}
+      <div className={`flex items-center justify-between px-3 py-1 border-b ${headerBg} border-y border-gold/5`}>
+        <span className={`font-rajdhani font-bold text-[11px] tracking-widest uppercase ${headerText}`}>
+          {isBlue ? 'Time Azul' : 'Time Vermelho'}
+        </span>
+        <div className="flex items-center gap-4">
+          <span className={`font-rajdhani font-bold text-[10px] ${winColor}`}>{winLabel}</span>
+          <div className="flex gap-3 font-rajdhani text-[10px] text-gold-light/30 uppercase tracking-wider">
+            <span className="w-20 text-center">KDA</span>
+            <span className="hidden sm:block w-24 text-center">Dano</span>
+            <span className="hidden sm:block w-10 text-right">CS</span>
+            <span className="hidden md:block w-8 text-right">Ouro</span>
+            <span className="hidden lg:block w-36">Itens</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Players */}
+      {team.map((p) => {
+        const isMe       = p.puuid === myPuuid;
+        const champIcon  = champIconUrlById(p.championId, champMap);
+        const champName  = getChampionName(p.championId, champMap);
+        const spell1Url  = spellIconUrlById(p.spell1Id, spellMap);
+        const spell2Url  = spellIconUrlById(p.spell2Id, spellMap);
+        const keystoneUrl = runeMap.get(p.primaryRune) ?? '';
+        const subPathUrl  = runeMap.get(p.perkSubStyle) ?? '';
+        const kda        = p.deaths === 0 ? `${p.kills + p.assists}` : ((p.kills + p.assists) / p.deaths).toFixed(2);
+        const dmgPct     = Math.round(p.damageToChamps * 100 / maxDmg);
+        const items      = p.items ?? [];
+
+        return (
+          <div key={p.puuid}
+            className={`flex items-center gap-2 px-3 py-1.5 border-b border-gold/[0.04] transition-colors ${
+              isMe ? `bg-gold/[0.05] border-l-2 ${accentBorder}` : 'hover:bg-gold/[0.02]'
+            }`}
+          >
+            {/* Champion icon */}
+            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-white/15">
+              {champIcon
+                ? <img src={champIcon} alt={champName} width={32} height={32} className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                : <div className="w-full h-full bg-arcane-panel flex items-center justify-center">
+                    <Swords className="w-3 h-3 text-gold/30" />
+                  </div>}
+            </div>
+
+            {/* Spells + runes */}
+            <div className="flex gap-0.5 flex-shrink-0">
+              <div className="flex flex-col gap-0.5">
+                {spell1Url ? <img src={spell1Url} alt="D" width={14} height={14} className="w-3.5 h-3.5 rounded-sm" onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}} />
+                  : <div className="w-3.5 h-3.5 rounded-sm bg-arcane-panel" />}
+                {spell2Url ? <img src={spell2Url} alt="F" width={14} height={14} className="w-3.5 h-3.5 rounded-sm" onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}} />
+                  : <div className="w-3.5 h-3.5 rounded-sm bg-arcane-panel" />}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {keystoneUrl ? <img src={keystoneUrl} alt="" width={14} height={14} className="w-3.5 h-3.5" onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}} />
+                  : <div className="w-3.5 h-3.5 rounded-full bg-arcane-panel/50" />}
+                {subPathUrl ? <img src={subPathUrl} alt="" width={14} height={14} className="w-3.5 h-3.5 opacity-70" onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}} />
+                  : <div className="w-3.5 h-3.5 rounded-full bg-arcane-panel/30" />}
+              </div>
+            </div>
+
+            {/* Name + champion */}
+            <div className="min-w-0 w-28 flex-shrink-0">
+              <div className={`font-rajdhani font-bold text-xs truncate leading-tight ${isMe ? (isBlue ? 'text-arcane-blue' : 'text-red-400') : 'text-gold-light/85'}`}>
+                {p.riotId || champName}
+                {isMe && <span className="ml-1 text-gold/40 font-normal text-[10px]">(você)</span>}
+              </div>
+              <div className="font-rajdhani text-[10px] text-gold-light/35 truncate">{champName}</div>
+            </div>
+
+            {/* KDA */}
+            <div className="w-20 text-center flex-shrink-0">
+              <div className={`font-cinzel font-bold text-xs ${kdaColor(parseFloat(kda))}`}>
+                {p.kills}/{p.deaths}/{p.assists}
+              </div>
+              <div className="font-rajdhani text-[10px] text-gold-light/40">{kda} KDA</div>
+            </div>
+
+            {/* Damage bar */}
+            <div className="hidden sm:block w-24 flex-shrink-0">
+              <div className="font-rajdhani text-[10px] text-gold-light/55 text-right mb-0.5">
+                {p.damageToChamps.toLocaleString('pt-BR')}
+              </div>
+              <div className="h-1.5 bg-arcane-panel rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${isBlue ? 'bg-arcane-blue/60' : 'bg-red-500/60'}`}
+                  style={{ width: `${dmgPct}%` }}
+                />
+              </div>
+            </div>
+
+            {/* CS */}
+            <div className="hidden sm:block w-10 text-right flex-shrink-0">
+              <div className="font-rajdhani text-xs text-gold-light/70">{p.cs}</div>
+            </div>
+
+            {/* Gold */}
+            <div className="hidden md:block w-8 text-right flex-shrink-0">
+              <div className="font-rajdhani text-xs text-gold/70">{fmtGold(p.goldEarned)}</div>
+            </div>
+
+            {/* Items */}
+            <div className="hidden lg:flex items-center gap-0.5 flex-shrink-0">
+              {items.slice(0, 6).map((id, idx) => <ItemSlot key={idx} id={id} ddItems={ddItems} size={22} />)}
+              <div className="w-px bg-white/8 mx-0.5 self-stretch" />
+              <ItemSlot id={items[6] ?? 0} ddItems={ddItems} size={22} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
