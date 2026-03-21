@@ -295,7 +295,7 @@ export default function DashboardPage() {
                 {profile?.summoner.name ?? linkedAccount.summonerName}
               </span>
               <button
-                onClick={() => isRookie ? setShowUpgradeModal(true) : setShowLinkForm(true)}
+                onClick={() => setShowLinkForm(true)}
                 className="text-gold/50 hover:text-gold transition-colors text-xs underline underline-offset-2"
               >
                 alterar
