@@ -154,19 +154,22 @@ export default function DashboardPage() {
     setSessionsLoading(true);
     const nextOffset = reset ? 0 : sessionsOffset;
     try {
-      const [paged, trendData, csHistory] = await Promise.all([
+      const [pagedResult, trendResult, csResult] = await Promise.allSettled([
         getSessions(20, nextOffset),
         getAnalyticsTrend(),
         getRecentChampSelect(10),
       ]);
-      setSessions(prev => reset ? paged.data : [...prev, ...paged.data]);
-      setSessionsTotal(paged.total);
-      setSessionsOffset(nextOffset + paged.data.length);
-      setTrend(trendData);
-      setChampSelects(csHistory);
+      if (pagedResult.status === 'fulfilled') {
+        const paged = pagedResult.value;
+        setSessions(prev => reset ? paged.data : [...prev, ...paged.data]);
+        setSessionsTotal(paged.total);
+        setSessionsOffset(nextOffset + paged.data.length);
+      }
+      if (trendResult.status === 'fulfilled') setTrend(trendResult.value);
+      if (csResult.status === 'fulfilled') setChampSelects(csResult.value);
       setCoachingLoaded(true);
     } catch {
-      // silently fail — data may not exist yet
+      // silently fail
     } finally {
       setSessionsLoading(false);
     }
