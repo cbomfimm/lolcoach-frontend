@@ -9,11 +9,16 @@ import {
   Search, AlertCircle, Loader2, ChevronRight,
   Shield, Zap, Eye, Coins, Target, BarChart3,
   CheckCircle2, XCircle, Trash2, BookOpen, History, ChevronDown,
-  ArrowUpRight, ArrowDownRight, Minus, X, Check,
+  ArrowUpRight, ArrowDownRight, Minus, X, Check, ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { asset, route } from '@/lib/assets';
-import { getDDragonVersion, champIconUrl, itemIconUrl, profileIconUrl, getItemsData, stripItemHtml, type DDragonItemInfo } from '@/lib/ddragon';
+import {
+  getDDragonVersion, champIconUrl, itemIconUrl, profileIconUrl,
+  getItemsData, stripItemHtml, type DDragonItemInfo,
+  getChampionsMap, getSpellsMap, getRunesMap,
+  getChampionName, champIconUrlById, spellIconUrlById,
+} from '@/lib/ddragon';
 import {
   getRiotProfile, getRiotProfileByPuuid, getMySummoner, getLiveGame,
   getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect, getMatchTimeline,
@@ -88,6 +93,9 @@ export default function DashboardPage() {
   const [error, setError]               = useState<string | null>(null);
   const [ddVersion, setDdVersion]       = useState('14.24.1');
   const [ddItems, setDdItems]           = useState<Record<string, DDragonItemInfo>>({});
+  const [champMap, setChampMap]         = useState<Map<number, string>>(new Map());
+  const [spellMap, setSpellMap]         = useState<Map<number, string>>(new Map());
+  const [runeMap, setRuneMap]           = useState<Map<number, string>>(new Map());
 
   // Coaching tab state
   const [sessions, setSessions]         = useState<PostGameSession[]>([]);
@@ -196,6 +204,9 @@ export default function DashboardPage() {
   useEffect(() => {
     getDDragonVersion().then(setDdVersion);
     getItemsData().then(setDdItems);
+    getChampionsMap().then(setChampMap);
+    getSpellsMap().then(setSpellMap);
+    getRunesMap().then(setRuneMap);
   }, []);
 
   // Auto-load: se usuário já tem conta vinculada, carrega pelo PUUID (sem re-buscar por nome)
@@ -359,6 +370,9 @@ export default function DashboardPage() {
             liveError={liveError}
             onCheckLiveGame={handleCheckLiveGame}
             ddItems={ddItems}
+            champMap={champMap}
+            spellMap={spellMap}
+            runeMap={runeMap}
           />
         )}
 
@@ -1189,7 +1203,7 @@ function ChampSelectRow({ entry: cs }: { entry: ChampSelectEntry }) {
 
 // ─── Full profile view ────────────────────────────────────────────────────────
 
-function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheckLiveGame, ddItems }: {
+function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheckLiveGame, ddItems, champMap, spellMap, runeMap }: {
   profile: RiotProfile;
   isPro: boolean;
   liveGame: LiveGame | null | 'not-in-game';
@@ -1197,7 +1211,7 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
   liveError: string | null;
   ddItems: Record<string, DDragonItemInfo>;
   onCheckLiveGame: () => void;
-}) {
+} & LiveGameMaps) {
   const { summoner, soloQ, flexQ, stats, recentMatches } = profile;
 
   const soloTierColor = soloQ ? (TIER_COLOR[soloQ.tier] ?? '#c89b3c') : '#c89b3c';
@@ -1298,7 +1312,7 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
           )}
           {liveGame && liveGame !== 'not-in-game' && (
             <motion.div key="live" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <LiveGameCard game={liveGame} myPuuid={profile.summoner.puuid} />
+              <LiveGameCard game={liveGame} myPuuid={profile.summoner.puuid} champMap={champMap} spellMap={spellMap} runeMap={runeMap} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -1346,14 +1360,22 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
 
 // ─── Live Game Card ───────────────────────────────────────────────────────────
 
-function champIconById(_id: number) {
-  // Champion name not available from spectator API, only ID — use generic placeholder
-  return champIconUrl('Aatrox');
+interface LiveGameMaps {
+  champMap: Map<number, string>;
+  spellMap: Map<number, string>;
+  runeMap:  Map<number, string>;
 }
 
-function LiveGameCard({ game, myPuuid }: { game: LiveGame; myPuuid: string }) {
+function deepLolUrl(server: string, riotId: string): string {
+  // riotId = "GameName#TAG" → "GameName-TAG"
+  const slug = riotId.replace('#', '-');
+  return `https://www.deeplol.gg/summoner/${server}/${encodeURIComponent(slug)}`;
+}
+
+function LiveGameCard({ game, myPuuid, champMap, spellMap, runeMap }: { game: LiveGame; myPuuid: string } & LiveGameMaps) {
   const mins = Math.floor(game.gameLength / 60);
   const secs = String(game.gameLength % 60).padStart(2, '0');
+  const maps: LiveGameMaps = { champMap, spellMap, runeMap };
 
   return (
     <div className="mt-4">
@@ -1368,57 +1390,117 @@ function LiveGameCard({ game, myPuuid }: { game: LiveGame; myPuuid: string }) {
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
-        <TeamBlock label="Time Azul" color="arcane-blue" participants={game.blueTeam} bans={game.blueBans} myPuuid={myPuuid} />
-        <TeamBlock label="Time Vermelho" color="red-400" participants={game.redTeam} bans={game.redBans} myPuuid={myPuuid} />
+        <TeamBlock label="Time Azul" color="arcane-blue" participants={game.blueTeam} bans={game.blueBans} myPuuid={myPuuid} server={game.server} {...maps} />
+        <TeamBlock label="Time Vermelho" color="red-400" participants={game.redTeam} bans={game.redBans} myPuuid={myPuuid} server={game.server} {...maps} />
       </div>
     </div>
   );
 }
 
-function TeamBlock({ label, color, participants, bans, myPuuid }: {
+function TeamBlock({ label, color, participants, bans, myPuuid, server, champMap, spellMap, runeMap }: {
   label: string; color: string;
   participants: LiveGame['blueTeam'];
   bans: number[];
   myPuuid: string;
-}) {
+  server: string;
+} & LiveGameMaps) {
   const borderColor = color === 'arcane-blue' ? 'border-arcane-blue/20' : 'border-red-400/20';
   const textColor   = color === 'arcane-blue' ? 'text-arcane-blue' : 'text-red-400';
 
   return (
-    <div className={`border ${borderColor} rounded-sm p-4 bg-arcane-dark/40`}>
+    <div className={`border ${borderColor} rounded-sm p-3 bg-arcane-dark/40`}>
       <div className={`font-rajdhani font-bold text-xs tracking-widest uppercase ${textColor} mb-3`}>{label}</div>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {participants.map((p) => {
-          const isMe = p.puuid === myPuuid;
+          const isMe      = p.puuid === myPuuid;
+          const champName = getChampionName(p.championId, champMap);
+          const champIcon = champIconUrlById(p.championId, champMap);
+          const spell1    = spellIconUrlById(p.spell1Id, spellMap);
+          const spell2    = spellIconUrlById(p.spell2Id, spellMap);
+          const runeIcon  = runeMap.get(p.primaryRune) ?? '';
+          const displayName = p.riotId || p.summonerName || 'Invocador';
+          const profileUrl  = p.riotId ? deepLolUrl(server, p.riotId) : null;
+
           return (
-            <div key={p.puuid} className={`flex items-center gap-3 px-2 py-1.5 rounded-sm ${isMe ? 'bg-gold/10 border border-gold/20' : ''}`}>
-              {/* Champion icon placeholder */}
-              <div className="w-8 h-8 rounded-sm bg-arcane-panel border border-gold/10 flex items-center justify-center flex-shrink-0">
-                <Swords className="w-3.5 h-3.5 text-gold/30" />
+            <div key={p.puuid} className={`flex items-center gap-2 px-2 py-1.5 rounded-sm ${isMe ? 'bg-gold/10 border border-gold/20' : ''}`}>
+              {/* Champion icon */}
+              <div className="w-9 h-9 rounded-sm overflow-hidden bg-arcane-panel border border-gold/10 flex-shrink-0">
+                {champIcon ? (
+                  <img src={champIcon} alt={champName} width={36} height={36} className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Swords className="w-3.5 h-3.5 text-gold/30" />
+                  </div>
+                )}
               </div>
-              <div className="min-w-0">
-                <div className={`font-rajdhani font-bold text-sm truncate ${isMe ? 'text-gold' : 'text-gold-light/80'}`}>
-                  {p.summonerName || 'Invocador'}
-                  {isMe && <span className="ml-1.5 text-gold/60 font-normal text-xs">(você)</span>}
-                </div>
-                <div className="font-rajdhani text-xs text-gold-light/30">
-                  Campeão #{p.championId}
+
+              {/* Champion name + summoner name */}
+              <div className="min-w-0 flex-1">
+                <div className="font-cinzel font-bold text-xs truncate text-gold-light/90">{champName}</div>
+                <div className={`font-rajdhani text-xs truncate ${isMe ? 'text-gold font-bold' : 'text-gold-light/50'}`}>
+                  {displayName}
+                  {isMe && <span className="ml-1 text-gold/50 font-normal">(você)</span>}
                 </div>
               </div>
+
+              {/* Spells + keystone */}
+              <div className="flex flex-col gap-0.5 flex-shrink-0">
+                <div className="flex gap-0.5">
+                  {spell1 ? (
+                    <img src={spell1} alt="D" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : <div className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />}
+                  {spell2 ? (
+                    <img src={spell2} alt="F" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : <div className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />}
+                </div>
+                <div className="flex justify-center">
+                  {runeIcon ? (
+                    <img src={runeIcon} alt="rune" width={16} height={16} className="w-4 h-4 opacity-80"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : <div className="w-4 h-4 rounded-full bg-arcane-panel border border-gold/10" />}
+                </div>
+              </div>
+
+              {/* DeepLol link */}
+              {profileUrl ? (
+                <a href={profileUrl} target="_blank" rel="noopener noreferrer"
+                  className="flex-shrink-0 text-gold/30 hover:text-gold/70 transition-colors"
+                  title={`Ver ${displayName} no DeepLol`}>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              ) : (
+                <div className="w-3.5 h-3.5 flex-shrink-0" />
+              )}
             </div>
           );
         })}
       </div>
 
+      {/* Bans */}
       {bans.filter(b => b > 0).length > 0 && (
         <div className="mt-3 pt-3 border-t border-gold/10">
           <div className="font-rajdhani text-xs text-gold-light/30 mb-1.5 uppercase tracking-wider">Bans</div>
           <div className="flex flex-wrap gap-1.5">
-            {bans.filter(b => b > 0).map((id, i) => (
-              <div key={i} className="w-6 h-6 rounded-sm bg-arcane-panel border border-red-500/20 flex items-center justify-center">
-                <XCircle className="w-3 h-3 text-red-400/50" />
-              </div>
-            ))}
+            {bans.filter(b => b > 0).map((id, i) => {
+              const banIcon = champIconUrlById(id, champMap);
+              const banName = getChampionName(id, champMap);
+              return (
+                <div key={i} className="relative w-6 h-6 rounded-sm overflow-hidden border border-red-500/30 flex-shrink-0" title={banName}>
+                  {banIcon ? (
+                    <img src={banIcon} alt={banName} width={24} height={24} className="w-full h-full object-cover grayscale opacity-60"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : (
+                    <div className="w-full h-full bg-arcane-panel flex items-center justify-center">
+                      <XCircle className="w-3 h-3 text-red-400/50" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-red-900/30" />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

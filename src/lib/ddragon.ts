@@ -21,6 +21,12 @@ export function champIconUrl(name: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/${v()}/img/champion/${normalized}.png`;
 }
 
+export function champIconUrlById(id: number, champMap: Map<number, string>): string {
+  const name = champMap.get(id);
+  if (!name) return '';
+  return champIconUrl(name);
+}
+
 export function itemIconUrl(id: number): string | null {
   if (!id) return null;
   return `https://ddragon.leagueoflegends.com/cdn/${v()}/img/item/${id}.png`;
@@ -28,6 +34,12 @@ export function itemIconUrl(id: number): string | null {
 
 export function profileIconUrl(id: number): string {
   return `https://ddragon.leagueoflegends.com/cdn/${v()}/img/profileicon/${id}.png`;
+}
+
+export function spellIconUrlById(id: number, spellMap: Map<number, string>): string {
+  const spellId = spellMap.get(id);
+  if (!spellId) return '';
+  return `https://ddragon.leagueoflegends.com/cdn/${v()}/img/spell/${spellId}.png`;
 }
 
 export function ddragonBase(version: string) {
@@ -72,5 +84,96 @@ export async function getItemsData(): Promise<Record<string, DDragonItemInfo>> {
     return cachedItems;
   } catch {
     return {};
+  }
+}
+
+// ─── Champion ID → name map ────────────────────────────────────────────────
+
+let cachedChampMap: Map<number, string> | null = null;
+
+/** Returns a Map<championId, championKey> for use with champIconUrl / champion name display. */
+export async function getChampionsMap(): Promise<Map<number, string>> {
+  if (cachedChampMap) return cachedChampMap;
+  try {
+    const version = await getDDragonVersion();
+    const res = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`
+    );
+    if (!res.ok) return new Map();
+    const json = await res.json();
+    const data: Record<string, { key: string; name: string }> = json.data;
+    const map = new Map<number, string>();
+    for (const champ of Object.values(data)) {
+      map.set(parseInt(champ.key, 10), champ.name);
+    }
+    cachedChampMap = map;
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+/** Returns champion name from numeric ID. Falls back to "#ID" string. */
+export function getChampionName(id: number, champMap: Map<number, string>): string {
+  return champMap.get(id) ?? `#${id}`;
+}
+
+// ─── Summoner spell ID → icon key map ─────────────────────────────────────
+
+let cachedSpellMap: Map<number, string> | null = null;
+
+/** Returns a Map<spellNumericId, spellKey> for icon URL construction. */
+export async function getSpellsMap(): Promise<Map<number, string>> {
+  if (cachedSpellMap) return cachedSpellMap;
+  try {
+    const version = await getDDragonVersion();
+    const res = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/summoner.json`
+    );
+    if (!res.ok) return new Map();
+    const json = await res.json();
+    const data: Record<string, { key: string; id: string }> = json.data;
+    const map = new Map<number, string>();
+    for (const spell of Object.values(data)) {
+      map.set(parseInt(spell.key, 10), spell.id);
+    }
+    cachedSpellMap = map;
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+// ─── Rune/perk ID → icon URL map ──────────────────────────────────────────
+
+let cachedRuneMap: Map<number, string> | null = null;
+
+interface DDragonRuneSlot { runes: Array<{ id: number; icon: string; name: string }> }
+interface DDragonRunePath { id: number; icon: string; name: string; slots: DDragonRuneSlot[] }
+
+/** Returns a Map<runeId, fullIconUrl> including both path icons and keystone icons. */
+export async function getRunesMap(): Promise<Map<number, string>> {
+  if (cachedRuneMap) return cachedRuneMap;
+  try {
+    const version = await getDDragonVersion();
+    const res = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`
+    );
+    if (!res.ok) return new Map();
+    const paths: DDragonRunePath[] = await res.json();
+    const map = new Map<number, string>();
+    const base = `https://ddragon.leagueoflegends.com/cdn/img/`;
+    for (const path of paths) {
+      map.set(path.id, `${base}${path.icon}`);
+      for (const slot of path.slots) {
+        for (const rune of slot.runes) {
+          map.set(rune.id, `${base}${rune.icon}`);
+        }
+      }
+    }
+    cachedRuneMap = map;
+    return map;
+  } catch {
+    return new Map();
   }
 }

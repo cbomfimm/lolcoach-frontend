@@ -285,19 +285,23 @@ export async function getRiotProfile(summonerName: string): Promise<RiotProfile>
 
 export interface LiveParticipant {
   puuid: string;
+  riotId: string;        // "GameName#TAG"
   summonerName: string;
   championId: number;
+  profileIconId: number;
   spell1Id: number;
   spell2Id: number;
   primaryRune: number;
   perkStyle: number;
   perkSubStyle: number;
+  allPerks: number[];
 }
 
 export interface LiveGame {
   gameId: number;
   queueName: string;
   gameLength: number;
+  server: string;        // e.g. "BR1", "EUW1"
   blueTeam: LiveParticipant[];
   redTeam: LiveParticipant[];
   blueBans: number[];
