@@ -47,15 +47,16 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom bar */}
+        {/* Bottom bar — Riot Games Legal Jibber Jabber (obrigatório) */}
         <div className="mt-8 pt-6 border-t border-gold/10 flex flex-col gap-3">
           <p className="font-rajdhani text-xs text-gold-light/20 leading-relaxed max-w-3xl">
-            MindRift Coach não é endossado pela Riot Games e não reflete as opiniões da Riot Games ou de qualquer
-            pessoa envolvida oficialmente na produção ou gestão de League of Legends. League of Legends e Riot Games
-            são marcas registradas da Riot Games, Inc.
+            MindRift AI não é endossado pela Riot Games e não reflete as opiniões ou pontos de vista
+            da Riot Games ou de qualquer pessoa oficialmente envolvida na produção ou gerenciamento de
+            League of Legends. League of Legends e Riot Games são marcas registradas ou marcas
+            comerciais da Riot Games, Inc. League of Legends © Riot Games, Inc.
           </p>
           <p className="font-rajdhani text-xs text-gold-light/25 tracking-wider">
-            © 2025 MindRift
+            © {new Date().getFullYear()} MindRift AI. Todos os direitos reservados.
           </p>
         </div>
       </div>
