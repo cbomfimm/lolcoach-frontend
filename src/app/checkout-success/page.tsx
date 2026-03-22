@@ -6,6 +6,7 @@ import { RiotLegalBar } from '@/components/RiotLegalBar';
 
 export default function CheckoutSuccessPage() {
   return (
+    <>
     <div className="min-h-screen bg-arcane-dark flex items-center justify-center px-6">
       {/* Background */}
       <div className="absolute inset-0 bg-hex-pattern opacity-15 pointer-events-none" />
@@ -95,5 +96,6 @@ export default function CheckoutSuccessPage() {
       </motion.div>
     </div>
     <RiotLegalBar />
+    </>
   );
 }
