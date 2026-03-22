@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { RiotLegalBar } from '@/components/RiotLegalBar';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import {
@@ -426,6 +427,7 @@ export default function DashboardPage() {
           <UpgradeModal onClose={() => setShowUpgradeModal(false)} />
         )}
       </AnimatePresence>
+      <RiotLegalBar />
     </div>
   );
 }

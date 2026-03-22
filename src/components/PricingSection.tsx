@@ -337,14 +337,6 @@ export function PricingSection() {
           })}
         </div>
 
-        {/* Riot ToS disclaimer */}
-        <TimelineContent timelineRef={sectionRef} animationNum={7}>
-          <p className="text-center font-rajdhani text-xs text-gold/25 mt-12 max-w-2xl mx-auto leading-relaxed">
-            MindRift Coach não é endossado pela Riot Games e não reflete as opiniões da Riot Games ou de qualquer
-            pessoa envolvida oficialmente na produção ou gestão de League of Legends. League of Legends e Riot Games
-            são marcas registradas da Riot Games, Inc.
-          </p>
-        </TimelineContent>
       </div>
     </section>
   );

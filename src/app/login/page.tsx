@@ -209,8 +209,11 @@ export default function LoginPage() {
             )}
           </AnimatePresence>
 
-          <p className="mt-6 text-center font-rajdhani text-xs text-gold-light/30">
-            MindRiftAI não é afiliado à Riot Games.
+          <p className="mt-6 text-center font-rajdhani text-xs text-gold-light/20 leading-relaxed max-w-sm mx-auto">
+            MindRift AI não é endossado pela Riot Games e não reflete as opiniões ou pontos de vista
+            da Riot Games ou de qualquer pessoa oficialmente envolvida na produção ou gerenciamento de
+            League of Legends. League of Legends e Riot Games são marcas registradas ou marcas
+            comerciais da Riot Games, Inc. League of Legends © Riot Games, Inc.
           </p>
         </div>
       </motion.div>

@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion';
 import { CheckCircle2, ChevronRight, Crown } from 'lucide-react';
 import { route } from '@/lib/assets';
+import { RiotLegalBar } from '@/components/RiotLegalBar';
 
 export default function CheckoutSuccessPage() {
   return (
@@ -93,5 +94,6 @@ export default function CheckoutSuccessPage() {
         </motion.p>
       </motion.div>
     </div>
+    <RiotLegalBar />
   );
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { RiotLegalBar } from "@/components/RiotLegalBar";
 
 export const metadata: Metadata = {
   title: "MindRiftAi — Plataforma de Coaching com IA",
@@ -31,7 +30,6 @@ export default function RootLayout({
       </head>
       <body>
         <AuthProvider>{children}</AuthProvider>
-        <RiotLegalBar />
       </body>
     </html>
   );
