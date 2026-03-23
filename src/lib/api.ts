@@ -94,10 +94,30 @@ export interface ChampSelectEntry {
   insights: string[];
 }
 
+// ─── Fetch helper (retry on network errors / cold start) ─────────────────────
+
+/**
+ * Wraps fetch with one automatic retry on network-level failures ("Failed to fetch").
+ * This handles Railway cold-start drops where the first request after inactivity
+ * gets a TCP reset before the server finishes waking up.
+ */
+async function apiFetch(input: RequestInfo, init?: RequestInit, retries = 1): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (err) {
+    if (retries > 0 && err instanceof TypeError) {
+      // Brief wait for the server to finish waking up, then retry once
+      await new Promise(r => setTimeout(r, 1500));
+      return apiFetch(input, init, retries - 1);
+    }
+    throw err;
+  }
+}
+
 // ─── API Calls ────────────────────────────────────────────────────────────────
 
 export async function getSubscription(): Promise<Subscription> {
-  const res = await fetch(`${BACKEND}/api/subscription`, {
+  const res = await apiFetch(`${BACKEND}/api/subscription`, {
     headers: await authHeaders(),
   });
   if (!res.ok) throw new Error('Falha ao buscar assinatura');
@@ -105,7 +125,7 @@ export async function getSubscription(): Promise<Subscription> {
 }
 
 export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
-  const res = await fetch(`${BACKEND}/api/analytics/summary`, {
+  const res = await apiFetch(`${BACKEND}/api/analytics/summary`, {
     headers: await authHeaders(),
   });
   if (!res.ok) throw new Error('Falha ao buscar analytics');
@@ -113,7 +133,7 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
 }
 
 export async function getSessions(limit = 20, offset = 0): Promise<PagedResult<PostGameSession>> {
-  const res = await fetch(`${BACKEND}/api/sessions?limit=${limit}&offset=${offset}`, {
+  const res = await apiFetch(`${BACKEND}/api/sessions?limit=${limit}&offset=${offset}`, {
     headers: await authHeaders(),
   });
   if (!res.ok) throw new Error('Falha ao buscar sessões');
@@ -121,7 +141,7 @@ export async function getSessions(limit = 20, offset = 0): Promise<PagedResult<P
 }
 
 export async function deleteSession(id: string): Promise<void> {
-  const res = await fetch(`${BACKEND}/api/sessions/${id}`, {
+  const res = await apiFetch(`${BACKEND}/api/sessions/${id}`, {
     method: 'DELETE',
     headers: await authHeaders(),
   });
@@ -129,7 +149,7 @@ export async function deleteSession(id: string): Promise<void> {
 }
 
 export async function getAnalyticsTrend(): Promise<AnalyticsTrend> {
-  const res = await fetch(`${BACKEND}/api/analytics/trend`, {
+  const res = await apiFetch(`${BACKEND}/api/analytics/trend`, {
     headers: await authHeaders(),
   });
   if (!res.ok) throw new Error('Falha ao buscar tendência');
@@ -137,7 +157,7 @@ export async function getAnalyticsTrend(): Promise<AnalyticsTrend> {
 }
 
 export async function getRecentChampSelect(limit = 10): Promise<ChampSelectEntry[]> {
-  const res = await fetch(`${BACKEND}/api/champ-select/recent?limit=${limit}`, {
+  const res = await apiFetch(`${BACKEND}/api/champ-select/recent?limit=${limit}`, {
     headers: await authHeaders(),
   });
   if (!res.ok) throw new Error('Falha ao buscar histórico de champ select');
@@ -304,7 +324,7 @@ export class SubscriptionRequiredError extends Error {
 }
 
 export async function getRiotProfileByPuuid(puuid: string): Promise<RiotProfile> {
-  const res = await fetch(
+  const res = await apiFetch(
     `${BACKEND}/api/riot/profile/by-puuid/${encodeURIComponent(puuid)}`,
     { headers: await authHeaders() }
   );
@@ -317,7 +337,7 @@ export async function getRiotProfileByPuuid(puuid: string): Promise<RiotProfile>
 }
 
 export async function getRiotProfile(summonerName: string): Promise<RiotProfile> {
-  const res = await fetch(
+  const res = await apiFetch(
     `${BACKEND}/api/riot/profile/${encodeURIComponent(summonerName)}`,
     { headers: await authHeaders() }
   );
@@ -363,7 +383,7 @@ export interface LiveGame {
 }
 
 export async function getLiveGame(puuid: string): Promise<LiveGame | null> {
-  const res = await fetch(`${BACKEND}/api/riot/live-game/${puuid}`, {
+  const res = await apiFetch(`${BACKEND}/api/riot/live-game/${puuid}`, {
     headers: await authHeaders(),
   });
   if (res.status === 204) return null; // não está em partida
@@ -374,7 +394,7 @@ export async function getLiveGame(puuid: string): Promise<LiveGame | null> {
 }
 
 export async function createCheckoutSession(priceId: string): Promise<{ url: string }> {
-  const res = await fetch(`${BACKEND}/api/stripe/checkout`, {
+  const res = await apiFetch(`${BACKEND}/api/stripe/checkout`, {
     method: 'POST',
     headers: await authHeaders(),
     body: JSON.stringify({ priceId }),
@@ -384,7 +404,7 @@ export async function createCheckoutSession(priceId: string): Promise<{ url: str
 }
 
 export async function getMatchTimeline(matchId: string, puuid: string): Promise<MatchTimeline> {
-  const res = await fetch(
+  const res = await apiFetch(
     `${BACKEND}/api/riot/match/${encodeURIComponent(matchId)}/timeline?puuid=${encodeURIComponent(puuid)}`,
     { headers: await authHeaders() }
   );
@@ -393,7 +413,7 @@ export async function getMatchTimeline(matchId: string, puuid: string): Promise<
 }
 
 export async function getMatchDetails(matchId: string): Promise<MatchDetails> {
-  const res = await fetch(
+  const res = await apiFetch(
     `${BACKEND}/api/riot/match/${encodeURIComponent(matchId)}/details`,
     { headers: await authHeaders() }
   );
@@ -402,7 +422,7 @@ export async function getMatchDetails(matchId: string): Promise<MatchDetails> {
 }
 
 export async function getMySummoner(): Promise<SummonerProfile | null> {
-  const res = await fetch(`${BACKEND}/api/riot/summoner/me`, {
+  const res = await apiFetch(`${BACKEND}/api/riot/summoner/me`, {
     headers: await authHeaders(),
   });
   if (!res.ok) return null;
