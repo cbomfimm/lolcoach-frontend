@@ -234,7 +234,10 @@ export interface MatchDetailsParticipant {
   primaryRune: number;
   perkStyle: number;
   perkSubStyle: number;
+  /** 8-element array: [0-5]=regular items, [6]=ADC boot/mission slot OR trinket, [7]=trinket (ADC only) */
   items: number[];
+  /** "TOP" | "JUNGLE" | "MIDDLE" | "BOTTOM" | "UTILITY" */
+  teamPosition: string;
   isRemake: boolean;
 }
 

@@ -2056,20 +2056,26 @@ function MatchScoreboard({ team, isBlue, myPuuid, ddItems, champMap, spellMap, r
 
   return (
     <div>
-      {/* Header */}
-      <div className={`flex items-center justify-between px-3 py-1 border-b ${headerBg} border-y border-gold/5`}>
-        <span className={`font-rajdhani font-bold text-[11px] tracking-widest uppercase ${headerText}`}>
-          {isBlue ? 'Time Azul' : 'Time Vermelho'}
-        </span>
-        <div className="flex items-center gap-4">
-          <span className={`font-rajdhani font-bold text-[10px] ${winColor}`}>{winLabel}</span>
-          <div className="flex gap-3 font-rajdhani text-[10px] text-gold-light/30 uppercase tracking-wider">
-            <span className="w-20 text-center">KDA</span>
-            <span className="hidden sm:block w-24 text-center">Dano</span>
-            <span className="hidden sm:block w-10 text-right">CS</span>
-            <span className="hidden md:block w-8 text-right">Ouro</span>
-            <span className="hidden lg:block w-36">Itens</span>
-          </div>
+      {/* Header — mirrors player row flex layout so columns align perfectly */}
+      <div className={`flex items-center gap-2 px-3 py-1 border-b ${headerBg} border-y border-gold/5`}>
+        {/* Spacer: champ icon (w-8) */}
+        <div className="w-8 flex-shrink-0" />
+        {/* Spacer: spells (w-3.5) + gap-0.5 + runes (w-3.5) = 30px */}
+        <div className="w-[30px] flex-shrink-0" />
+        {/* Name column: team label + win result */}
+        <div className="w-28 flex-shrink-0 flex items-center gap-1.5 overflow-hidden">
+          <span className={`font-rajdhani font-bold text-[11px] tracking-widest uppercase truncate ${headerText}`}>
+            {isBlue ? 'Time Azul' : 'Time Vermelho'}
+          </span>
+          <span className={`font-rajdhani font-bold text-[10px] whitespace-nowrap ${winColor}`}>· {winLabel}</span>
+        </div>
+        {/* Column labels — same gap-2 and widths as player row stats */}
+        <div className="flex gap-2 font-rajdhani text-[10px] text-gold-light/30 uppercase tracking-wider">
+          <span className="w-20 text-center flex-shrink-0">KDA</span>
+          <span className="hidden sm:inline-block w-24 text-center flex-shrink-0">Dano</span>
+          <span className="hidden sm:inline-block w-10 text-right flex-shrink-0">CS</span>
+          <span className="hidden md:inline-block w-8 text-right flex-shrink-0">Ouro</span>
+          <span className="hidden lg:inline-block flex-shrink-0">Itens</span>
         </div>
       </div>
 
@@ -2158,11 +2164,23 @@ function MatchScoreboard({ team, isBlue, myPuuid, ddItems, champMap, spellMap, r
               <div className="font-rajdhani text-xs text-gold/70">{fmtGold(p.goldEarned)}</div>
             </div>
 
-            {/* Items */}
+            {/* Items
+                ADC (BOTTOM) rule — Season 2025: boot goes into lane-mission slot (index 6),
+                trinket moves to index 7. Other roles: index 6 = trinket, index 7 unused. */}
             <div className="hidden lg:flex items-center gap-0.5 flex-shrink-0">
               {items.slice(0, 6).map((id, idx) => <ItemSlot key={idx} id={id} ddItems={ddItems} size={22} />)}
+              {p.teamPosition === 'BOTTOM' && (
+                // Boot / lane-mission slot — shown inline with regular items, no divider yet
+                <ItemSlot id={items[6] ?? 0} ddItems={ddItems} size={22} />
+              )}
+              {/* Divider before trinket */}
               <div className="w-px bg-white/8 mx-0.5 self-stretch" />
-              <ItemSlot id={items[6] ?? 0} ddItems={ddItems} size={22} />
+              {/* Trinket: index 7 for ADC, index 6 for everyone else */}
+              <ItemSlot
+                id={p.teamPosition === 'BOTTOM' ? (items[7] ?? 0) : (items[6] ?? 0)}
+                ddItems={ddItems}
+                size={22}
+              />
             </div>
           </div>
         );
