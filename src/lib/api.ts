@@ -183,6 +183,7 @@ export interface RiotRankInfo {
 }
 
 export interface MatchSummary {
+  queueId: number;
   matchId: string;
   champion: string;
   championId: number;
@@ -310,6 +311,8 @@ export interface RiotProfile {
   soloQ: RiotRankInfo | null;
   flexQ: RiotRankInfo | null;
   stats: AggregatedStats;
+  statsRankedSolo: AggregatedStats;
+  statsRankedFlex: AggregatedStats;
   recentMatches: MatchSummary[];
 }
 
@@ -426,5 +429,19 @@ export async function getMySummoner(): Promise<SummonerProfile | null> {
     headers: await authHeaders(),
   });
   if (!res.ok) return null;
+  return res.json();
+}
+
+export async function getMoreMatches(
+  offset: number,
+  limit = 20,
+  queue?: 'solo' | 'flex',
+): Promise<MatchSummary[]> {
+  const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+  if (queue) params.set('queue', queue);
+  const res = await apiFetch(`${BACKEND}/api/riot/matches?${params}`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) return [];
   return res.json();
 }

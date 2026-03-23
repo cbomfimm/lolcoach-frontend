@@ -23,11 +23,11 @@ import {
 import {
   getRiotProfile, getRiotProfileByPuuid, getMySummoner, getLiveGame,
   getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect,
-  getMatchTimeline, getMatchDetails,
+  getMatchTimeline, getMatchDetails, getMoreMatches,
   createCheckoutSession, SubscriptionRequiredError,
   type RiotProfile, type MatchSummary, type ChampionStats, type LiveGame, type SummonerProfile,
   type PostGameSession, type PagedResult, type AnalyticsTrend, type ChampSelectEntry,
-  type ItemPurchase, type MatchDetails, type MatchDetailsParticipant,
+  type ItemPurchase, type MatchDetails, type MatchDetailsParticipant, type AggregatedStats,
 } from '@/lib/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -132,6 +132,12 @@ export default function DashboardPage() {
   const [coachingLoaded, setCoachingLoaded] = useState(false); // used in EmptySearch fallback
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
+  const [activeQueue, setActiveQueue] = useState<'total' | 'solo' | 'flex'>('total');
+  const [displayMatches, setDisplayMatches] = useState<MatchSummary[]>([]);
+  const [matchOffset, setMatchOffset] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
   const handleCheckLiveGame = async () => {
     if (!profile) return;
     setLiveLoading(true);
@@ -213,6 +219,10 @@ export default function DashboardPage() {
       setShowLinkForm(false);
       setLinkInput('');
       setLiveGame(null);
+      setDisplayMatches(p.recentMatches);
+      setMatchOffset(p.recentMatches.length);
+      setHasMore(p.recentMatches.length === 20);
+      setActiveQueue('total');
     } catch (err) {
       if (err instanceof SubscriptionRequiredError) {
         setShowLinkForm(false);
@@ -248,6 +258,10 @@ export default function DashboardPage() {
           try {
             const p = await getRiotProfileByPuuid(saved.puuid);
             setProfile(p);
+            setDisplayMatches(p.recentMatches);
+            setMatchOffset(p.recentMatches.length);
+            setHasMore(p.recentMatches.length === 20);
+            setActiveQueue('total');
           } catch (err) {
             if (err instanceof SubscriptionRequiredError) {
               setShowUpgradeModal(true);
@@ -268,6 +282,27 @@ export default function DashboardPage() {
     })();
   }, [user]);
 
+
+  const handleQueueChange = async (q: 'total' | 'solo' | 'flex') => {
+    setActiveQueue(q);
+    setLoadingMore(true);
+    const queue = q === 'total' ? undefined : q;
+    const matches = await getMoreMatches(0, 20, queue);
+    setDisplayMatches(matches);
+    setMatchOffset(matches.length);
+    setHasMore(matches.length === 20);
+    setLoadingMore(false);
+  };
+
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    const queue = activeQueue === 'total' ? undefined : activeQueue as 'solo' | 'flex';
+    const more = await getMoreMatches(matchOffset, 20, queue);
+    setDisplayMatches(prev => [...prev, ...more]);
+    setMatchOffset(prev => prev + more.length);
+    setHasMore(more.length === 20);
+    setLoadingMore(false);
+  };
 
   const handleSignOut = async () => { await signOut(); router.replace('/'); };
 
@@ -401,6 +436,12 @@ export default function DashboardPage() {
             champMap={champMap}
             spellMap={spellMap}
             runeMap={runeMap}
+            activeQueue={activeQueue}
+            displayMatches={displayMatches}
+            loadingMore={loadingMore}
+            hasMore={hasMore}
+            onQueueChange={handleQueueChange}
+            onLoadMore={handleLoadMore}
           />
         )}
 
@@ -1232,7 +1273,7 @@ function ChampSelectRow({ entry: cs }: { entry: ChampSelectEntry }) {
 
 // ─── Full profile view ────────────────────────────────────────────────────────
 
-function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheckLiveGame, ddItems, champMap, spellMap, runeMap }: {
+function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheckLiveGame, ddItems, champMap, spellMap, runeMap, activeQueue, displayMatches, loadingMore, hasMore, onQueueChange, onLoadMore }: {
   profile: RiotProfile;
   isPro: boolean;
   liveGame: LiveGame | null | 'not-in-game';
@@ -1240,8 +1281,15 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
   liveError: string | null;
   ddItems: Record<string, DDragonItemInfo>;
   onCheckLiveGame: () => void;
+  activeQueue: 'total' | 'solo' | 'flex';
+  displayMatches: MatchSummary[];
+  loadingMore: boolean;
+  hasMore: boolean;
+  onQueueChange: (q: 'total' | 'solo' | 'flex') => void;
+  onLoadMore: () => void;
 } & LiveGameMaps) {
-  const { summoner, soloQ, flexQ, stats, recentMatches } = profile;
+  const { summoner, soloQ, flexQ, stats, statsRankedSolo, statsRankedFlex, recentMatches } = profile;
+  const activeStats: AggregatedStats = activeQueue === 'solo' ? statsRankedSolo : activeQueue === 'flex' ? statsRankedFlex : stats;
 
   const soloTierColor = soloQ ? (TIER_COLOR[soloQ.tier] ?? '#c89b3c') : '#c89b3c';
 
@@ -1287,26 +1335,43 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
         </div>
       </div>
 
+      {/* ── Queue filter tabs ── */}
+      <div className="flex gap-1 mb-4">
+        {(['total', 'solo', 'flex'] as const).map(q => (
+          <button
+            key={q}
+            onClick={() => onQueueChange(q)}
+            className={`px-3 py-1 rounded font-rajdhani text-xs font-bold tracking-widest uppercase transition-colors ${
+              activeQueue === q
+                ? 'bg-gold text-dark-900'
+                : 'bg-white/5 text-gold-light/50 hover:bg-white/10'
+            }`}
+          >
+            {q === 'total' ? 'Total' : q === 'solo' ? 'Ranked Solo' : 'Ranked Flex'}
+          </button>
+        ))}
+      </div>
+
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        <StatCard icon={<BarChart3 className="w-4 h-4 text-gold" />} label="Partidas" value={String(stats.totalGames)} />
+        <StatCard icon={<BarChart3 className="w-4 h-4 text-gold" />} label="Partidas" value={String(activeStats.totalGames)} />
         <StatCard
           icon={<TrendingUp className="w-4 h-4 text-gold" />}
           label="Win Rate"
-          value={`${stats.winRate}%`}
-          valueClass={winRateColor(stats.winRate)}
-          sub={`${stats.wins}V ${stats.losses}D`}
+          value={`${activeStats.winRate}%`}
+          valueClass={winRateColor(activeStats.winRate)}
+          sub={`${activeStats.wins}V ${activeStats.losses}D`}
         />
         <StatCard
           icon={<Swords className="w-4 h-4 text-gold" />}
           label="KDA"
-          value={String(stats.avgKda)}
-          valueClass={kdaColor(stats.avgKda)}
-          sub={`${stats.avgKills} / ${stats.avgDeaths} / ${stats.avgAssists}`}
+          value={String(activeStats.avgKda)}
+          valueClass={kdaColor(activeStats.avgKda)}
+          sub={`${activeStats.avgKills} / ${activeStats.avgDeaths} / ${activeStats.avgAssists}`}
         />
-        <StatCard icon={<Target className="w-4 h-4 text-gold" />} label="CS/min" value={String(stats.avgCsPerMin)} />
-        <StatCard icon={<Eye className="w-4 h-4 text-gold" />} label="Visão" value={String(stats.avgVision)} />
-        <StatCard icon={<Coins className="w-4 h-4 text-gold" />} label="Ouro Médio" value={stats.avgGold.toLocaleString('pt-BR')} />
+        <StatCard icon={<Target className="w-4 h-4 text-gold" />} label="CS/min" value={String(activeStats.avgCsPerMin)} />
+        <StatCard icon={<Eye className="w-4 h-4 text-gold" />} label="Visão" value={String(activeStats.avgVision)} />
+        <StatCard icon={<Coins className="w-4 h-4 text-gold" />} label="Ouro Médio" value={activeStats.avgGold.toLocaleString('pt-BR')} />
       </div>
 
       {/* ── Live Game ── */}
@@ -1348,11 +1413,11 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
       </div>
 
       {/* ── Campeões mais jogados ── */}
-      {stats.byChampion.length > 0 && (
+      {activeStats.byChampion.length > 0 && (
         <div className="bg-arcane-panel border border-gold/20 rounded-sm p-6">
           <SectionTitle icon={<Shield className="w-4 h-4 text-gold" />} title="Campeões Mais Jogados" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 mt-4">
-            {stats.byChampion.map((c) => <ChampCard key={c.champion} champ={c} />)}
+            {activeStats.byChampion.map((c) => <ChampCard key={c.champion} champ={c} />)}
           </div>
         </div>
       )}
@@ -1361,7 +1426,16 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
       <div className="bg-arcane-panel border border-gold/20 rounded-sm p-6">
         <SectionTitle icon={<Zap className="w-4 h-4 text-gold" />} title="Partidas Recentes" />
         <div className="mt-4 space-y-2">
-          {recentMatches.map((m, i) => <MatchRow key={m.matchId} match={m} ddItems={ddItems} puuid={summoner.puuid} index={i} champMap={champMap} spellMap={spellMap} runeMap={runeMap} />)}
+          {displayMatches.map((m, i) => <MatchRow key={m.matchId} match={m} ddItems={ddItems} puuid={summoner.puuid} index={i} champMap={champMap} spellMap={spellMap} runeMap={runeMap} />)}
+          {hasMore && (
+            <button
+              onClick={onLoadMore}
+              disabled={loadingMore}
+              className="mt-3 w-full py-2 rounded font-rajdhani text-sm font-bold tracking-widest uppercase text-gold-light/50 hover:text-gold border border-white/5 hover:border-gold/20 transition-all disabled:opacity-40"
+            >
+              {loadingMore ? 'Carregando...' : 'Carregar mais'}
+            </button>
+          )}
         </div>
       </div>
 
