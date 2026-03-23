@@ -2165,22 +2165,20 @@ function MatchScoreboard({ team, isBlue, myPuuid, ddItems, champMap, spellMap, r
             </div>
 
             {/* Items
-                ADC (BOTTOM) rule — Season 2025: boot goes into lane-mission slot (index 6),
-                trinket moves to index 7. Other roles: index 6 = trinket, index 7 unused. */}
+                Season 2025 ADC (BOTTOM) rule:
+                  items[0-5] = regular items (same for all)
+                  items[6]   = trinket/ward  (same for all)
+                  items[7]   = boot/lane-mission slot (ADC only — only rendered if non-zero) */}
             <div className="hidden lg:flex items-center gap-0.5 flex-shrink-0">
               {items.slice(0, 6).map((id, idx) => <ItemSlot key={idx} id={id} ddItems={ddItems} size={22} />)}
-              {p.teamPosition === 'BOTTOM' && (
-                // Boot / lane-mission slot — shown inline with regular items, no divider yet
-                <ItemSlot id={items[6] ?? 0} ddItems={ddItems} size={22} />
+              {/* ADC boot slot — shown only when the player actually has a boot item */}
+              {p.teamPosition === 'BOTTOM' && (items[7] ?? 0) > 0 && (
+                <ItemSlot id={items[7]} ddItems={ddItems} size={22} />
               )}
-              {/* Divider before trinket */}
+              {/* Divider before trinket/ward */}
               <div className="w-px bg-white/8 mx-0.5 self-stretch" />
-              {/* Trinket: index 7 for ADC, index 6 for everyone else */}
-              <ItemSlot
-                id={p.teamPosition === 'BOTTOM' ? (items[7] ?? 0) : (items[6] ?? 0)}
-                ddItems={ddItems}
-                size={22}
-              />
+              {/* Trinket always lives at index 6 for all roles */}
+              <ItemSlot id={items[6] ?? 0} ddItems={ddItems} size={22} />
             </div>
           </div>
         );
