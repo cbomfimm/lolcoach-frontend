@@ -265,13 +265,8 @@ export default function DashboardPage() {
           } catch (err) {
             if (err instanceof SubscriptionRequiredError) {
               setShowUpgradeModal(true);
-            } else {
-              const msg = err instanceof Error ? err.message : '';
-              if (msg.includes('Limite de requisições') || msg.includes('429'))
-                setError('Riot API temporariamente indisponível. Aguarde alguns segundos e recarregue a página.');
-              else
-                setError('Não foi possível carregar o perfil Riot. Verifique sua conexão ou tente recarregar.');
             }
+            // Demais erros (cold start, rate limit, etc.): mostra o form silenciosamente
           }
         }
       } catch {
