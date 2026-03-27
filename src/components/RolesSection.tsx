@@ -7,9 +7,9 @@ const roles = [
   {
     name: 'Top Lane',
     icon: Shield,
-    color: '#C89B3C',
-    bgColor: 'rgba(200,155,60,0.1)',
-    borderColor: 'rgba(200,155,60,0.3)',
+    color: '#d4a843',
+    bgColor: 'rgba(212,168,67,0.08)',
+    borderColor: 'rgba(212,168,67,0.25)',
     metrics: ['Wave management', 'Timing do TP', 'Split-push', 'Gold diff'],
     description:
       'Análise de wave management, uso de teleport e pressão de split-push. Compara o gold diff gerado com o seu histórico de top.',
@@ -18,9 +18,9 @@ const roles = [
   {
     name: 'Jungle',
     icon: Sword,
-    color: '#0BC4E3',
-    bgColor: 'rgba(11,196,227,0.1)',
-    borderColor: 'rgba(11,196,227,0.3)',
+    color: '#7c6dd8',
+    bgColor: 'rgba(124,109,216,0.08)',
+    borderColor: 'rgba(124,109,216,0.25)',
     metrics: ['Clear time', 'Gank timing', 'Objetivos', 'Jungle Risk Index'],
     description:
       'Tempo de clear, janelas de gank por rota e controle de objetivos. O Jungle Risk Index alerta rotas desprotegidas em tempo real.',
@@ -29,9 +29,9 @@ const roles = [
   {
     name: 'Mid Lane',
     icon: Zap,
-    color: '#C89B3C',
-    bgColor: 'rgba(200,155,60,0.1)',
-    borderColor: 'rgba(200,155,60,0.3)',
+    color: '#d4a843',
+    bgColor: 'rgba(212,168,67,0.08)',
+    borderColor: 'rgba(212,168,67,0.25)',
     metrics: ['Roam windows', 'CS/min', 'Priority', 'Controle de vision'],
     description:
       'Janelas de roam, taxa de CS e prioridade de rota. O coach avisa quando roamar vai gerar mais valor do que farmar.',
@@ -40,9 +40,9 @@ const roles = [
   {
     name: 'ADC',
     icon: Target,
-    color: '#0BC4E3',
-    bgColor: 'rgba(11,196,227,0.1)',
-    borderColor: 'rgba(11,196,227,0.3)',
+    color: '#7c6dd8',
+    bgColor: 'rgba(124,109,216,0.08)',
+    borderColor: 'rgba(124,109,216,0.25)',
     metrics: ['Power spike', 'Custo de morte', 'Teamfight pos.', 'Kiting'],
     description:
       'Power spikes por item, custo de morte em ouro e posicionamento em teamfights. Análise de kiting contra tanks e engajadores.',
@@ -51,9 +51,9 @@ const roles = [
   {
     name: 'Support',
     icon: Eye,
-    color: '#C89B3C',
-    bgColor: 'rgba(200,155,60,0.1)',
-    borderColor: 'rgba(200,155,60,0.3)',
+    color: '#d4a843',
+    bgColor: 'rgba(212,168,67,0.08)',
+    borderColor: 'rgba(212,168,67,0.25)',
     metrics: ['Vision score', 'Ward obj.', 'Engage timing', 'Peel / engage'],
     description:
       'Score de visão, cobertura de objetivos e timing de engajamento. Analisa se você está peelando ou engajando no momento certo.',
@@ -68,8 +68,8 @@ export function RolesSection() {
 
   return (
     <section id="roles" className="relative py-32 bg-arcane-panel overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/25 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/25 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2a2845] to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2a2845] to-transparent" />
       <div className="absolute inset-0 bg-hex-pattern opacity-15" />
 
       <div ref={ref} className="relative z-10 max-w-7xl mx-auto px-6">
@@ -80,25 +80,25 @@ export function RolesSection() {
             animate={inView ? { opacity: 1, y: 0 } : {}}
             className="inline-flex items-center gap-2 mb-4"
           >
-            <div className="h-px w-8 bg-gold/50" />
-            <span className="font-rajdhani text-xs tracking-[0.3em] uppercase text-gold/60">Cobertura Completa</span>
-            <div className="h-px w-8 bg-gold/50" />
+            <div className="h-px w-8 bg-[#7c6dd8]/50" />
+            <span className="text-xs tracking-[0.3em] uppercase text-[#7c6dd8]/60">Cobertura Completa</span>
+            <div className="h-px w-8 bg-[#7c6dd8]/50" />
           </motion.div>
 
           <motion.h2
             initial={{ opacity: 0, y: 30 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.1 }}
-            className="font-cinzel text-4xl md:text-5xl font-bold text-gold-light mb-4"
+            className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight"
           >
             Todas as{' '}
-            <span className="text-gold">5 Roles.</span>
+            <span className="text-[#d4a843]">5 Roles.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0 }}
             animate={inView ? { opacity: 1 } : {}}
             transition={{ delay: 0.2 }}
-            className="font-rajdhani text-lg text-gold-light/50 max-w-xl mx-auto"
+            className="text-lg text-white/45 max-w-xl mx-auto"
           >
             Cada posição tem seu analisador especializado com métricas únicas.
           </motion.p>
@@ -115,10 +115,10 @@ export function RolesSection() {
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.08 * i }}
                 onClick={() => setActive(i)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-sm border font-rajdhani font-bold text-sm tracking-wider uppercase transition-all duration-300 cursor-pointer ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-semibold text-sm tracking-wider uppercase transition-all duration-300 cursor-pointer ${
                   active === i
-                    ? 'border-gold/60 bg-gold/10 text-gold shadow-[0_0_12px_rgba(200,155,60,0.15)]'
-                    : 'border-gold/15 text-gold-light/50 hover:border-gold/30 hover:text-gold/70'
+                    ? 'border-[#d4a843]/60 bg-[#d4a843]/10 text-[#d4a843] shadow-[0_0_12px_rgba(212,168,67,0.15)]'
+                    : 'border-[#2a2845] text-white/40 hover:border-[#7c6dd8]/30 hover:text-white/70'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -140,32 +140,32 @@ export function RolesSection() {
           >
             {/* Left: description + metrics */}
             <div
-              className="p-8 rounded-sm border"
+              className="p-8 rounded-xl border"
               style={{ borderColor: roles[active].borderColor, background: roles[active].bgColor }}
             >
               <div className="flex items-center gap-3 mb-5">
                 <div
-                  className="w-12 h-12 rounded-sm flex items-center justify-center"
+                  className="w-12 h-12 rounded-lg flex items-center justify-center"
                   style={{ background: roles[active].bgColor, border: `1px solid ${roles[active].borderColor}` }}
                 >
                   {(() => { const Icon = roles[active].icon; return <Icon className="w-6 h-6" style={{ color: roles[active].color }} />; })()}
                 </div>
-                <h3 className="font-cinzel text-2xl font-bold" style={{ color: roles[active].color }}>
+                <h3 className="text-2xl font-bold tracking-tight" style={{ color: roles[active].color }}>
                   {roles[active].name}
                 </h3>
               </div>
 
-              <p className="font-rajdhani text-base text-gold-light/65 leading-relaxed mb-6">
+              <p className="text-base text-white/60 leading-relaxed mb-6">
                 {roles[active].description}
               </p>
 
               <div>
-                <div className="font-rajdhani text-xs tracking-widest uppercase text-gold/50 mb-3">Métricas rastreadas</div>
+                <div className="text-xs tracking-widest uppercase text-white/35 mb-3">Métricas rastreadas</div>
                 <div className="flex flex-wrap gap-2">
                   {roles[active].metrics.map((metric) => (
                     <span
                       key={metric}
-                      className="px-3 py-1 rounded-sm text-xs font-rajdhani font-semibold tracking-wider uppercase"
+                      className="px-3 py-1 rounded-lg text-xs font-semibold tracking-wider uppercase"
                       style={{
                         border: `1px solid ${roles[active].borderColor}`,
                         color: roles[active].color,
@@ -183,10 +183,10 @@ export function RolesSection() {
             <div className="flex items-center justify-center">
               <div className="relative w-72">
                 {/* Fake HUD panel */}
-                <div className="p-5 rounded-sm border border-gold/20 bg-arcane-dark/90 backdrop-blur">
+                <div className="p-5 rounded-xl border border-[#2a2845] bg-[#1a1830]/90 backdrop-blur">
                   <div className="flex items-center gap-2 mb-4">
-                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                    <span className="font-rajdhani text-xs tracking-widest uppercase text-green-400">Coach Ativo</span>
+                    <div className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse" />
+                    <span className="text-xs tracking-widest uppercase text-[#22c55e]">Coach Ativo</span>
                   </div>
 
                   <div className="space-y-3">
@@ -196,24 +196,24 @@ export function RolesSection() {
                         initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.1 }}
-                        className="flex items-center justify-between p-2.5 rounded-sm bg-gold/5 border border-gold/10"
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-white/5 border border-[#2a2845]"
                       >
                         <div className="w-1 h-4 rounded-full mr-3" style={{ background: roles[active].color }} />
-                        <span className="font-rajdhani text-sm text-gold-light/80 flex-1">{val}</span>
+                        <span className="text-sm text-white/75 flex-1">{val}</span>
                       </motion.div>
                     ))}
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-gold/10 font-rajdhani text-xs text-gold/40 tracking-wider">
-                    LOLCoach · Servidor BR · Em partida
+                  <div className="mt-4 pt-4 border-t border-[#2a2845] text-xs text-white/30 tracking-wider">
+                    MindRift Coach · Servidor BR · Em partida
                   </div>
                 </div>
 
                 {/* Decorative corners */}
-                <div className="absolute -top-1 -left-1 w-4 h-4 border-l-2 border-t-2 border-gold/40" />
-                <div className="absolute -top-1 -right-1 w-4 h-4 border-r-2 border-t-2 border-gold/40" />
-                <div className="absolute -bottom-1 -left-1 w-4 h-4 border-l-2 border-b-2 border-gold/40" />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 border-r-2 border-b-2 border-gold/40" />
+                <div className="absolute -top-1 -left-1 w-4 h-4 border-l-2 border-t-2 border-[#d4a843]/40" />
+                <div className="absolute -top-1 -right-1 w-4 h-4 border-r-2 border-t-2 border-[#d4a843]/40" />
+                <div className="absolute -bottom-1 -left-1 w-4 h-4 border-l-2 border-b-2 border-[#d4a843]/40" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 border-r-2 border-b-2 border-[#d4a843]/40" />
               </div>
             </div>
           </motion.div>

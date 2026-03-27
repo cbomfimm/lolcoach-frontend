@@ -81,8 +81,8 @@ function PricingSwitch({ yearly, onToggle }: { yearly: boolean; onToggle: () => 
     <div className="flex items-center gap-4 mt-6">
       <button
         onClick={() => yearly && onToggle()}
-        className={`font-rajdhani text-sm tracking-widest uppercase transition-colors ${
-          !yearly ? 'text-gold font-bold' : 'text-gold/40 hover:text-gold/60'
+        className={`text-sm font-medium tracking-widest uppercase transition-colors ${
+          !yearly ? 'text-[#d4a843] font-bold' : 'text-white/30 hover:text-white/50'
         }`}
       >
         Mensal
@@ -92,12 +92,12 @@ function PricingSwitch({ yearly, onToggle }: { yearly: boolean; onToggle: () => 
         role="switch"
         aria-checked={yearly}
         onClick={onToggle}
-        className="relative w-12 h-6 rounded-full bg-arcane-dark border border-gold/30 transition-colors focus:outline-none"
+        className="relative w-12 h-6 rounded-full bg-[#0a0a1a] border border-[#2a2845] transition-colors focus:outline-none"
       >
         <motion.div
           layout
           layoutId="switch-thumb"
-          className="absolute top-0.5 w-5 h-5 rounded-full bg-gold"
+          className="absolute top-0.5 w-5 h-5 rounded-full bg-[#d4a843]"
           animate={{ left: yearly ? '26px' : '2px' }}
           transition={{ type: 'spring', stiffness: 500, damping: 35 }}
         />
@@ -105,12 +105,12 @@ function PricingSwitch({ yearly, onToggle }: { yearly: boolean; onToggle: () => 
 
       <button
         onClick={() => !yearly && onToggle()}
-        className={`font-rajdhani text-sm tracking-widest uppercase transition-colors ${
-          yearly ? 'text-gold font-bold' : 'text-gold/40 hover:text-gold/60'
+        className={`text-sm font-medium tracking-widest uppercase transition-colors ${
+          yearly ? 'text-[#d4a843] font-bold' : 'text-white/30 hover:text-white/50'
         }`}
       >
         Anual
-        <span className="ml-2 text-[10px] bg-gold/20 text-gold border border-gold/30 px-1.5 py-0.5 rounded-sm tracking-wider">
+        <span className="ml-2 text-[10px] bg-[#d4a843]/15 text-[#d4a843] border border-[#d4a843]/30 px-1.5 py-0.5 rounded-lg tracking-wider">
           −33%
         </span>
       </button>
@@ -157,8 +157,8 @@ export function PricingSection() {
   return (
     <section id="pricing" className="relative py-32 bg-arcane-panel overflow-hidden">
       {/* Edge lines */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2a2845] to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2a2845] to-transparent" />
 
       {/* Sparkles background */}
       <div className="absolute inset-0 pointer-events-none">
@@ -168,25 +168,25 @@ export function PricingSection() {
           size={0.8}
           speed={0.4}
           opacity={0.35}
-          color="#C89B3C"
+          color="#7c6dd8"
         />
       </div>
 
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_70%_at_50%_50%,rgba(200,155,60,0.04),transparent)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_70%_at_50%_50%,rgba(124,109,216,0.04),transparent)]" />
 
       <div ref={sectionRef} className="relative z-10 max-w-7xl mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-16">
           <TimelineContent timelineRef={sectionRef} animationNum={0}>
             <div className="inline-flex items-center gap-2 mb-4">
-              <div className="h-px w-8 bg-gold/50" />
-              <span className="font-rajdhani text-xs tracking-[0.3em] uppercase text-gold/60">Planos</span>
-              <div className="h-px w-8 bg-gold/50" />
+              <div className="h-px w-8 bg-[#7c6dd8]/50" />
+              <span className="text-xs tracking-[0.3em] uppercase text-[#7c6dd8]/60">Planos</span>
+              <div className="h-px w-8 bg-[#7c6dd8]/50" />
             </div>
           </TimelineContent>
 
           <TimelineContent timelineRef={sectionRef} animationNum={1}>
-            <h2 className="font-cinzel text-4xl md:text-5xl font-bold text-gold-light mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
               <VerticalCutReveal
                 splitBy="words"
                 staggerDuration={0.15}
@@ -199,7 +199,7 @@ export function PricingSection() {
           </TimelineContent>
 
           <TimelineContent timelineRef={sectionRef} animationNum={2}>
-            <p className="font-rajdhani text-lg text-gold-light/50 max-w-xl mx-auto">
+            <p className="text-lg text-white/45 max-w-xl mx-auto">
               Invista na sua evolução. Cancele quando quiser — sem fidelidade.
             </p>
           </TimelineContent>
@@ -222,20 +222,20 @@ export function PricingSection() {
                 key={plan.name}
                 timelineRef={sectionRef}
                 animationNum={4 + i}
-                className={`relative rounded-sm border p-8 flex flex-col ${
+                className={`relative rounded-xl border p-8 flex flex-col ${
                   plan.highlight
-                    ? 'border-gold/60 bg-arcane-dark shadow-[0_0_40px_rgba(200,155,60,0.12)]'
-                    : 'border-gold/20 bg-arcane-dark/50 hover:border-gold/35 transition-colors'
+                    ? 'border-[#d4a843]/50 bg-[#1a1830] shadow-[0_0_40px_rgba(212,168,67,0.10)]'
+                    : 'border-[#2a2845] bg-[#1a1830]/50 hover:border-[#2a2845]/80 transition-colors'
                 }`}
               >
                 {/* Badge */}
                 {plan.badge && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
                     <div
-                      className={`px-4 py-1 rounded-sm text-xs font-rajdhani font-bold tracking-widest uppercase ${
+                      className={`px-4 py-1 rounded-lg text-xs font-bold tracking-widest uppercase ${
                         plan.highlight
-                          ? 'bg-gold text-arcane-dark'
-                          : 'bg-arcane-blue/20 border border-arcane-blue/50 text-arcane-blue'
+                          ? 'bg-[#d4a843] text-[#0a0a1a]'
+                          : 'bg-[#7c6dd8]/20 border border-[#7c6dd8]/50 text-[#7c6dd8]'
                       }`}
                     >
                       {plan.badge}
@@ -246,15 +246,15 @@ export function PricingSection() {
                 {/* Plan icon & name */}
                 <div className="flex items-center gap-3 mb-6">
                   <div
-                    className={`w-10 h-10 rounded-sm flex items-center justify-center ${
-                      plan.highlight ? 'bg-gold/20' : 'bg-gold/10'
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      plan.highlight ? 'bg-[#d4a843]/20' : 'bg-[#7c6dd8]/10'
                     }`}
                   >
-                    <Icon className={`w-5 h-5 ${plan.highlight ? 'text-gold' : 'text-gold/70'}`} />
+                    <Icon className={`w-5 h-5 ${plan.highlight ? 'text-[#d4a843]' : 'text-[#7c6dd8]'}`} />
                   </div>
                   <div>
-                    <div className="font-cinzel font-bold text-gold-light">{plan.name}</div>
-                    <div className="font-rajdhani text-xs text-gold/40 tracking-wider">{plan.description}</div>
+                    <div className="font-bold text-white tracking-tight">{plan.name}</div>
+                    <div className="text-xs text-white/35 tracking-wider">{plan.description}</div>
                   </div>
                 </div>
 
@@ -262,11 +262,11 @@ export function PricingSection() {
                 <div className="mb-8">
                   {plan.comingSoon ? (
                     <div className="flex items-end gap-2">
-                      <span className="font-cinzel text-4xl font-bold text-gold/40">Em Breve</span>
+                      <span className="text-4xl font-bold text-white/30">Em Breve</span>
                     </div>
                   ) : plan.priceMonthly === 0 ? (
                     <div className="flex items-end gap-2">
-                      <span className="font-cinzel text-4xl font-bold text-gold-light">Grátis</span>
+                      <span className="text-4xl font-bold text-white">Grátis</span>
                     </div>
                   ) : (
                     <AnimatePresence mode="wait">
@@ -278,23 +278,23 @@ export function PricingSection() {
                         transition={{ duration: 0.2 }}
                         className="flex items-end gap-1"
                       >
-                        <span className={`font-cinzel text-sm font-bold pb-2 ${plan.highlight ? 'text-gold' : 'text-gold-light/60'}`}>
+                        <span className={`text-sm font-bold pb-2 ${plan.highlight ? 'text-[#d4a843]' : 'text-white/50'}`}>
                           R$
                         </span>
-                        <span className={`font-cinzel text-4xl font-bold ${plan.highlight ? 'text-gold' : 'text-gold-light'}`}>
+                        <span className={`text-4xl font-bold ${plan.highlight ? 'text-[#d4a843]' : 'text-white'}`}>
                           <NumberFlow
                             value={displayFloat}
                             format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}
                           />
                         </span>
-                        <span className="font-rajdhani text-sm text-gold/40 pb-1.5">
+                        <span className="text-sm text-white/35 pb-1.5">
                           /{isYearlyPaid ? 'ano' : 'mês'}
                         </span>
                       </motion.div>
                     </AnimatePresence>
                   )}
                   {isYearlyPaid && (
-                    <p className="font-rajdhani text-xs text-gold/40 mt-1">
+                    <p className="text-xs text-white/35 mt-1">
                       equivale a R${(displayFloat / 12).toFixed(2)}/mês
                     </p>
                   )}
@@ -306,12 +306,12 @@ export function PricingSection() {
                     <li key={feature} className="flex items-start gap-3">
                       <div
                         className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                          plan.highlight ? 'bg-gold/20' : 'bg-gold/10'
+                          plan.highlight ? 'bg-[#d4a843]/20' : 'bg-[#7c6dd8]/10'
                         }`}
                       >
-                        <Check className={`w-2.5 h-2.5 ${plan.highlight ? 'text-gold' : 'text-gold/60'}`} />
+                        <Check className={`w-2.5 h-2.5 ${plan.highlight ? 'text-[#d4a843]' : 'text-[#7c6dd8]'}`} />
                       </div>
-                      <span className="font-rajdhani text-sm text-gold-light/60">{feature}</span>
+                      <span className="text-sm text-white/55">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -321,11 +321,9 @@ export function PricingSection() {
                   variant={plan.variant}
                   size="lg"
                   disabled={plan.comingSoon || loadingPlan === plan.name}
-                  className={`w-full font-cinzel font-bold tracking-widest uppercase ${
+                  className={`w-full font-bold tracking-widest uppercase ${
                     plan.comingSoon
                       ? 'opacity-40 cursor-not-allowed'
-                      : plan.highlight
-                      ? 'bg-gold hover:bg-gold-dark text-arcane-dark border-0'
                       : ''
                   }`}
                   onClick={() => handleCta(plan)}
