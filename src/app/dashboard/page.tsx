@@ -2359,7 +2359,7 @@ function MatchScoreboard({ team, isBlue, myPuuid, ddItems, champMap, spellMap, r
         {/* Name column: team label + win result */}
         <div className="w-48 flex-shrink-0">
           <span className={`font-rajdhani font-bold text-[11px] tracking-widest uppercase whitespace-nowrap ${headerText}`}>
-            {teamName} <span className="opacity-70">({winLabel})</span>
+            {winLabel} <span className="opacity-60">({teamName})</span>
           </span>
         </div>
         {/* Column labels */}
