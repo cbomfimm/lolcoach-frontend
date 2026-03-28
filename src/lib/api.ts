@@ -231,6 +231,9 @@ export interface MatchSummary {
   eCasts: number;
   rCasts: number;
   participantId: number;
+  tripleKills: number;
+  quadraKills: number;
+  lpChange?: number;
 }
 
 export interface MatchDetailsParticipant {

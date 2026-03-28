@@ -1919,6 +1919,27 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
   const keystoneUrl = m.primaryRune  ? runeMap.get(m.primaryRune)  ?? '' : '';
   const subPathUrl  = m.perkSubStyle ? runeMap.get(m.perkSubStyle) ?? '' : '';
 
+  // ── Badges ──────────────────────────────────────────────────────────────────
+  type BadgeStyle = 'gold' | 'red' | 'blue' | 'purple' | 'green';
+  const badgePalette: Record<BadgeStyle, string> = {
+    gold:   'bg-yellow-500/15 text-yellow-300 border-yellow-500/30',
+    red:    'bg-red-500/15 text-red-300 border-red-500/30',
+    blue:   'bg-arcane-blue/15 text-arcane-blue border-arcane-blue/30',
+    purple: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
+    green:  'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  };
+  const badges: { label: string; style: BadgeStyle }[] = [];
+  if (m.pentaKills > 0)                       badges.push({ label: 'Pentakill!',          style: 'gold' });
+  else if (m.quadraKills > 0)                  badges.push({ label: 'Quadra Kill!',         style: 'gold' });
+  else if (m.tripleKills > 0)                  badges.push({ label: 'Triple Kill!',         style: 'gold' });
+  if (m.firstBlood)                            badges.push({ label: 'First Blood',          style: 'red' });
+  if (m.objectivesStolen > 0)                  badges.push({ label: `Obj. Roubado${m.objectivesStolen > 1 ? 's' : ''}`, style: 'purple' });
+  if (m.goldEarned >= 16000)                   badges.push({ label: 'Podre de Rico',        style: 'gold' });
+  if (m.kda >= 10 && m.deaths === 0)           badges.push({ label: 'KDA Perfeito',         style: 'blue' });
+  if (m.cs >= 260)                             badges.push({ label: `${m.cs} CS`,           style: 'green' });
+  if (m.damageToChamps >= 35000)               badges.push({ label: 'Alto Dano',            style: 'red' });
+  if (m.turretKills >= 3)                      badges.push({ label: `${m.turretKills} Torres`, style: 'blue' });
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -1931,100 +1952,118 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
 
       {/* ── Compact row ── */}
       <div
-        className="flex items-center gap-3 pl-4 pr-3 py-2.5 cursor-pointer select-none min-h-[72px]"
+        className="flex items-center gap-3 pl-4 pr-3 py-3 cursor-pointer select-none"
         onClick={handleExpand}
       >
-        {/* ── Col 1: Game info ── */}
-        <div className="w-[108px] flex-shrink-0 space-y-1">
-          <p className={`font-rajdhani font-bold text-[11px] leading-none ${
-            isRemake ? 'text-gold-light/40' : m.win ? 'text-arcane-blue' : 'text-red-400'
+        {/* ── Champion icon ── */}
+        <div className={`w-[56px] h-[56px] rounded-full overflow-hidden flex-shrink-0 border-2 shadow-md ${
+          isRemake ? 'border-gold/20' : m.win ? 'border-arcane-blue/60' : 'border-red-500/60'
+        }`}>
+          <img src={champIconUrl(m.champion)} alt={m.champion} width={56} height={56}
+            className="w-full h-full object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} />
+        </div>
+
+        {/* ── Col 1: Result + queue + time ── */}
+        <div className="w-[148px] flex-shrink-0 space-y-0.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className={`font-rajdhani font-bold text-[11px] px-1.5 py-0.5 rounded-sm border leading-none ${
+              isRemake ? 'bg-gold-light/10 text-gold-light/40 border-gold-light/15'
+              : m.win  ? 'bg-arcane-blue/20 text-arcane-blue border-arcane-blue/30'
+                       : 'bg-red-500/20 text-red-400 border-red-500/30'
+            }`}>
+              {isRemake ? 'REMAKE' : m.win ? 'VITÓRIA' : 'DERROTA'}
+            </span>
+            {m.lpChange != null && (
+              <span className={`font-rajdhani font-bold text-[13px] leading-none ${m.lpChange >= 0 ? 'text-gold' : 'text-red-400'}`}>
+                {m.lpChange >= 0 ? `+${m.lpChange}` : m.lpChange} PDL
+              </span>
+            )}
+          </div>
+          <p className={`font-rajdhani text-[11px] leading-none ${
+            isRemake ? 'text-gold-light/30' : m.win ? 'text-arcane-blue/70' : 'text-red-400/70'
           }`}>
             {m.queueName ?? 'Ranked Solo'}
           </p>
-          <span className={`inline-block font-rajdhani font-bold text-[10px] px-1.5 py-0.5 rounded-sm border leading-none ${
-            isRemake ? 'bg-gold-light/10 text-gold-light/40 border-gold-light/15'
-            : m.win  ? 'bg-arcane-blue/20 text-arcane-blue border-arcane-blue/30'
-                     : 'bg-red-500/20 text-red-400 border-red-500/30'
-          }`}>
-            {isRemake ? 'REMAKE' : m.win ? 'VITÓRIA' : 'DERROTA'}
-          </span>
-          <p className="font-rajdhani text-[10px] text-gold-light/40 leading-none">
+          <p className="font-rajdhani text-[10px] text-gold-light/35 leading-none">
             {fmtDuration(Number(m.gameDurationSecs))}
-            <span className="mx-1 opacity-50">·</span>
+            <span className="mx-1 opacity-40">·</span>
             {timeAgo(m.gameStartTimestamp)}
           </p>
         </div>
 
-        {/* ── Col 2: Champion icon + spells/runes ── */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <div className={`w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 shadow-md ${
-            isRemake ? 'border-gold/20' : m.win ? 'border-arcane-blue/60' : 'border-red-500/60'
-          }`}>
-            <img src={champIconUrl(m.champion)} alt={m.champion} width={48} height={48}
-              className="w-full h-full object-cover"
-              onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} />
+        {/* ── Col 2: KDA stats ── */}
+        <div className="w-[110px] flex-shrink-0 space-y-0.5">
+          <div className="flex items-baseline gap-1">
+            <span className={`font-rajdhani font-bold text-[16px] leading-none ${kdaColor(m.kda)}`}>
+              {m.kda.toFixed(1).replace('.', ',')}
+            </span>
+            <span className="font-rajdhani text-[10px] text-gold-light/40 leading-none">AMA</span>
           </div>
-
-          {/* Spells + runes 2×2 */}
-          <div className="flex gap-0.5 flex-shrink-0">
-            <div className="flex flex-col gap-0.5">
-              {spell1Url ? <img src={spell1Url} alt="D" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
-                : <div className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />}
-              {spell2Url ? <img src={spell2Url} alt="F" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
-                : <div className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />}
-            </div>
-            <div className="flex flex-col gap-0.5">
-              {keystoneUrl ? <img src={keystoneUrl} alt="" width={16} height={16} className="w-4 h-4" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
-                : <div className="w-4 h-4 rounded-full bg-arcane-panel/50" />}
-              {subPathUrl ? <img src={subPathUrl} alt="" width={16} height={16} className="w-4 h-4 opacity-70" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
-                : <div className="w-4 h-4 rounded-full bg-arcane-panel/30" />}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Col 3: KDA + CS ── */}
-        <div className="w-[96px] flex-shrink-0 space-y-0.5">
-          <div className="font-cinzel font-bold text-[13px] leading-none">
+          <div className="font-cinzel font-bold text-[12px] leading-none">
             <span className="text-arcane-blue">{m.kills}</span>
-            <span className="text-gold-light/30 mx-0.5">/</span>
+            <span className="text-gold-light/25 mx-0.5">/</span>
             <span className="text-red-400">{m.deaths}</span>
-            <span className="text-gold-light/30 mx-0.5">/</span>
+            <span className="text-gold-light/25 mx-0.5">/</span>
             <span className="text-arcane-blue">{m.assists}</span>
           </div>
-          <div className={`font-rajdhani text-[11px] ${kdaColor(m.kda)}`}>{m.kda} KDA</div>
-          <div className="font-rajdhani text-[11px] text-gold-light/40">
-            {m.csPerMin}/min
-            <span className="text-gold-light/25 ml-1">({m.cs})</span>
+          <div className="font-rajdhani text-[10px] text-gold-light/40 leading-none">
+            {m.csPerMin.toFixed(1).replace('.', ',')} CS/Min.
+            <span className="text-gold-light/20 ml-1">({m.cs})</span>
           </div>
         </div>
 
-        {/* ── Col 4: Items + multi-kill badge ── */}
-        <div className="hidden lg:flex flex-col gap-1.5 flex-shrink-0">
-          <div className="flex items-center gap-0.5">
-            {coreItems.map((id, idx) => <ItemSlot key={idx} id={id} ddItems={ddItems} size={28} />)}
-            <div className="w-px bg-white/10 mx-1 self-stretch" />
-            <ItemSlot id={trinketId} ddItems={ddItems} size={22} />
+        {/* ── Col 3: Spells/Runes + Items + Badges ── */}
+        <div className="hidden lg:flex flex-col gap-1.5 flex-1 min-w-0">
+          {/* Top: spells/runes + items */}
+          <div className="flex items-center gap-2">
+            {/* Spells + runes 2×2 */}
+            <div className="flex gap-0.5 flex-shrink-0">
+              <div className="flex flex-col gap-0.5">
+                {spell1Url ? <img src={spell1Url} alt="D" width={18} height={18} className="w-[18px] h-[18px] rounded-sm border border-white/10" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                  : <div className="w-[18px] h-[18px] rounded-sm bg-arcane-panel border border-white/5" />}
+                {spell2Url ? <img src={spell2Url} alt="F" width={18} height={18} className="w-[18px] h-[18px] rounded-sm border border-white/10" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                  : <div className="w-[18px] h-[18px] rounded-sm bg-arcane-panel border border-white/5" />}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {keystoneUrl ? <img src={keystoneUrl} alt="" width={18} height={18} className="w-[18px] h-[18px] rounded-full" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                  : <div className="w-[18px] h-[18px] rounded-full bg-arcane-panel/50" />}
+                {subPathUrl ? <img src={subPathUrl} alt="" width={18} height={18} className="w-[18px] h-[18px] rounded-full opacity-70" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                  : <div className="w-[18px] h-[18px] rounded-full bg-arcane-panel/30" />}
+              </div>
+            </div>
+            {/* Items */}
+            <div className="flex items-center gap-0.5">
+              {coreItems.map((id, idx) => <ItemSlot key={idx} id={id} ddItems={ddItems} size={28} />)}
+              <div className="w-px bg-white/8 mx-0.5 self-stretch" />
+              <ItemSlot id={trinketId} ddItems={ddItems} size={22} />
+            </div>
           </div>
-          {m.pentaKills > 0 && (
-            <span className="font-rajdhani font-bold text-[10px] px-1.5 py-0.5 rounded border bg-yellow-500/10 text-yellow-400 border-yellow-500/30 w-fit">
-              Pentakill 🏆
-            </span>
+          {/* Bottom: badges */}
+          {badges.length > 0 && (
+            <div className="flex items-center gap-1 flex-wrap">
+              {badges.slice(0, 3).map((b, i) => (
+                <span key={i} className={`font-rajdhani font-bold text-[10px] px-1.5 py-0.5 rounded-sm border leading-none ${badgePalette[b.style]}`}>
+                  {b.label}
+                </span>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* ── Col 5: Players ── */}
-        <div className="hidden lg:flex gap-4 flex-1 min-w-0">
+        {/* ── Col 4: Players ── */}
+        <div className="hidden xl:flex gap-3 flex-shrink-0">
           {details ? (
             [details.blueTeam, details.redTeam].map((team, ti) => (
-              <div key={ti} className="space-y-px min-w-0 w-[96px]">
+              <div key={ti} className="space-y-px w-[88px]">
                 {team.map((p) => {
                   const isMe = p.puuid === puuid;
                   const icon = champIconUrlById(p.championId, champMap);
                   return (
                     <div key={p.puuid} className="flex items-center gap-1 min-w-0">
                       {icon
-                        ? <img src={icon} alt={p.championName} width={14} height={14} className="w-3.5 h-3.5 rounded-full flex-shrink-0 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity='0'; }} />
-                        : <div className="w-3.5 h-3.5 rounded-full bg-arcane-panel/50 flex-shrink-0" />}
+                        ? <img src={icon} alt={p.championName} width={14} height={14} className="w-[14px] h-[14px] rounded-full flex-shrink-0 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity='0'; }} />
+                        : <div className="w-[14px] h-[14px] rounded-full bg-arcane-panel/50 flex-shrink-0" />}
                       <span className={`font-rajdhani text-[11px] truncate ${isMe ? 'text-gold font-bold' : 'text-gold-light/40'}`}>
                         {p.riotId.split('#')[0]}
                       </span>
@@ -2034,13 +2073,12 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
               </div>
             ))
           ) : (
-            /* Skeleton enquanto carrega */
             [0, 1].map(ti => (
-              <div key={ti} className="space-y-px w-[96px]">
+              <div key={ti} className="space-y-px w-[88px]">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="flex items-center gap-1">
-                    <div className="w-3.5 h-3.5 rounded-full bg-white/5 flex-shrink-0" />
-                    <div className="h-2.5 rounded bg-white/5 w-16" />
+                    <div className="w-[14px] h-[14px] rounded-full bg-white/5 flex-shrink-0" />
+                    <div className="h-2.5 rounded bg-white/5 w-14" />
                   </div>
                 ))}
               </div>
@@ -2049,9 +2087,9 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
         </div>
 
         {/* ── Chevron ── */}
-        <div className="ml-auto flex-shrink-0">
+        <div className="ml-auto flex-shrink-0 pl-1">
           <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
-            <ChevronDown className="w-4 h-4 text-gold-light/40" />
+            <ChevronDown className="w-4 h-4 text-gold-light/30" />
           </motion.div>
         </div>
       </div>
