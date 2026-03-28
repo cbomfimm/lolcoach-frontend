@@ -146,34 +146,44 @@ export async function getSpellsMap(): Promise<Map<number, string>> {
 
 // ─── Rune/perk ID → icon URL map ──────────────────────────────────────────
 
-let cachedRuneMap: Map<number, string> | null = null;
+export interface DDragonRune     { id: number; icon: string; name: string; shortDesc?: string }
+export interface DDragonRuneSlot { runes: DDragonRune[] }
+export interface DDragonRunePath { id: number; icon: string; name: string; slots: DDragonRuneSlot[] }
 
-interface DDragonRuneSlot { runes: Array<{ id: number; icon: string; name: string }> }
-interface DDragonRunePath { id: number; icon: string; name: string; slots: DDragonRuneSlot[] }
+let cachedRuneMap:  Map<number, string>    | null = null;
+let cachedRuneData: DDragonRunePath[]      | null = null;
 
 /** Returns a Map<runeId, fullIconUrl> including both path icons and keystone icons. */
 export async function getRunesMap(): Promise<Map<number, string>> {
   if (cachedRuneMap) return cachedRuneMap;
+  const paths = await getRunesData();
+  const map = new Map<number, string>();
+  const base = `https://ddragon.leagueoflegends.com/cdn/img/`;
+  for (const path of paths) {
+    map.set(path.id, `${base}${path.icon}`);
+    for (const slot of path.slots) {
+      for (const rune of slot.runes) {
+        map.set(rune.id, `${base}${rune.icon}`);
+      }
+    }
+  }
+  cachedRuneMap = map;
+  return map;
+}
+
+/** Returns the full rune tree structure from ddragon (all paths, slots, runes). */
+export async function getRunesData(): Promise<DDragonRunePath[]> {
+  if (cachedRuneData) return cachedRuneData;
   try {
     const version = await getDDragonVersion();
     const res = await fetch(
       `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`
     );
-    if (!res.ok) return new Map();
+    if (!res.ok) return [];
     const paths: DDragonRunePath[] = await res.json();
-    const map = new Map<number, string>();
-    const base = `https://ddragon.leagueoflegends.com/cdn/img/`;
-    for (const path of paths) {
-      map.set(path.id, `${base}${path.icon}`);
-      for (const slot of path.slots) {
-        for (const rune of slot.runes) {
-          map.set(rune.id, `${base}${rune.icon}`);
-        }
-      }
-    }
-    cachedRuneMap = map;
-    return map;
+    cachedRuneData = paths;
+    return paths;
   } catch {
-    return new Map();
+    return [];
   }
 }

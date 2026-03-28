@@ -17,8 +17,9 @@ import { asset, route } from '@/lib/assets';
 import {
   getDDragonVersion, champIconUrl, itemIconUrl, profileIconUrl,
   getItemsData, stripItemHtml, type DDragonItemInfo,
-  getChampionsMap, getSpellsMap, getRunesMap,
+  getChampionsMap, getSpellsMap, getRunesMap, getRunesData,
   getChampionName, champIconUrlById, spellIconUrlById,
+  type DDragonRunePath,
 } from '@/lib/ddragon';
 import {
   getRiotProfile, getRiotProfileByPuuid, getMySummoner, getLiveGame,
@@ -121,6 +122,7 @@ export default function DashboardPage() {
   const [champMap, setChampMap]         = useState<Map<number, string>>(new Map());
   const [spellMap, setSpellMap]         = useState<Map<number, string>>(new Map());
   const [runeMap, setRuneMap]           = useState<Map<number, string>>(new Map());
+  const [runesData, setRunesData]       = useState<DDragonRunePath[]>([]);
 
   // Coaching tab state
   const [sessions, setSessions]         = useState<PostGameSession[]>([]);
@@ -245,6 +247,7 @@ export default function DashboardPage() {
     getChampionsMap().then(setChampMap);
     getSpellsMap().then(setSpellMap);
     getRunesMap().then(setRuneMap);
+    getRunesData().then(setRunesData);
   }, []);
 
   // Auto-load: se usuário já tem conta vinculada, carrega pelo PUUID (sem re-buscar por nome)
@@ -431,6 +434,7 @@ export default function DashboardPage() {
             champMap={champMap}
             spellMap={spellMap}
             runeMap={runeMap}
+            runesData={runesData}
             activeQueue={activeQueue}
             displayMatches={displayMatches}
             loadingMore={loadingMore}
@@ -1268,7 +1272,7 @@ function ChampSelectRow({ entry: cs }: { entry: ChampSelectEntry }) {
 
 // ─── Full profile view ────────────────────────────────────────────────────────
 
-function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheckLiveGame, ddItems, champMap, spellMap, runeMap, activeQueue, displayMatches, loadingMore, hasMore, onQueueChange, onLoadMore }: {
+function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheckLiveGame, ddItems, champMap, spellMap, runeMap, runesData, activeQueue, displayMatches, loadingMore, hasMore, onQueueChange, onLoadMore }: {
   profile: RiotProfile;
   isPro: boolean;
   liveGame: LiveGame | null | 'not-in-game';
@@ -1401,7 +1405,7 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
           )}
           {liveGame && liveGame !== 'not-in-game' && (
             <motion.div key="live" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <LiveGameCard game={liveGame} myPuuid={profile.summoner.puuid} champMap={champMap} spellMap={spellMap} runeMap={runeMap} />
+              <LiveGameCard game={liveGame} myPuuid={profile.summoner.puuid} champMap={champMap} spellMap={spellMap} runeMap={runeMap} runesData={runesData} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -1421,7 +1425,7 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
       <div className="bg-arcane-panel border border-gold/20 rounded-sm p-6">
         <SectionTitle icon={<Zap className="w-4 h-4 text-gold" />} title="Partidas Recentes" />
         <div className="mt-4 space-y-2">
-          {displayMatches.map((m, i) => <MatchRow key={m.matchId} match={m} ddItems={ddItems} puuid={summoner.puuid} index={i} champMap={champMap} spellMap={spellMap} runeMap={runeMap} />)}
+          {displayMatches.map((m, i) => <MatchRow key={m.matchId} match={m} ddItems={ddItems} puuid={summoner.puuid} index={i} champMap={champMap} spellMap={spellMap} runeMap={runeMap} runesData={runesData} />)}
           {hasMore && (
             <button
               onClick={onLoadMore}
@@ -1459,9 +1463,10 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
 // ─── Live Game Card ───────────────────────────────────────────────────────────
 
 interface LiveGameMaps {
-  champMap: Map<number, string>;
-  spellMap: Map<number, string>;
-  runeMap:  Map<number, string>;
+  champMap:  Map<number, string>;
+  spellMap:  Map<number, string>;
+  runeMap:   Map<number, string>;
+  runesData: DDragonRunePath[];
 }
 
 function deepLolUrl(server: string, riotId: string): string {
@@ -1507,10 +1512,10 @@ function BanIcon({ championId, champMap }: { championId: number; champMap: Map<n
 
 // ─── Live game card ────────────────────────────────────────────────────────────
 
-function LiveGameCard({ game, myPuuid, champMap, spellMap, runeMap }: { game: LiveGame; myPuuid: string } & LiveGameMaps) {
+function LiveGameCard({ game, myPuuid, champMap, spellMap, runeMap, runesData }: { game: LiveGame; myPuuid: string } & LiveGameMaps) {
   const mins = Math.floor(game.gameLength / 60);
   const secs = String(game.gameLength % 60).padStart(2, '0');
-  const maps: LiveGameMaps = { champMap, spellMap, runeMap };
+  const maps: LiveGameMaps = { champMap, spellMap, runeMap, runesData };
 
   return (
     <div className="mt-4">
@@ -1532,7 +1537,7 @@ function LiveGameCard({ game, myPuuid, champMap, spellMap, runeMap }: { game: Li
   );
 }
 
-function TeamBlock({ label, isBlue, participants, bans, myPuuid, server, champMap, spellMap, runeMap }: {
+function TeamBlock({ label, isBlue, participants, bans, myPuuid, server, champMap, spellMap, runeMap, runesData: _runesData }: {
   label: string;
   isBlue: boolean;
   participants: LiveGame['blueTeam'];
@@ -1866,7 +1871,7 @@ function ItemSlot({ id, ddItems, size = 28 }: { id: number; ddItems: Record<stri
   );
 }
 
-function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap }: {
+function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap, runesData }: {
   match: MatchSummary;
   ddItems: Record<string, DDragonItemInfo>;
   puuid: string;
@@ -2097,11 +2102,11 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
                     <div className="space-y-0">
                       <MatchScoreboard
                         team={details.blueTeam} isBlue myPuuid={puuid}
-                        ddItems={ddItems} champMap={champMap} spellMap={spellMap} runeMap={runeMap}
+                        ddItems={ddItems} champMap={champMap} spellMap={spellMap} runeMap={runeMap} runesData={runesData}
                       />
                       <MatchScoreboard
                         team={details.redTeam} isBlue={false} myPuuid={puuid}
-                        ddItems={ddItems} champMap={champMap} spellMap={spellMap} runeMap={runeMap}
+                        ddItems={ddItems} champMap={champMap} spellMap={spellMap} runeMap={runeMap} runesData={runesData}
                       />
                     </div>
                   )}
@@ -2198,40 +2203,155 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
               {activeTab === 'itemBuild' && (
                 <div className="px-4 pb-4 pt-3 space-y-5">
 
-                  {/* Runes */}
+                  {/* Runes – full rune page */}
                   <div>
                     <SectionHeader label="Runas" color="bg-purple-400" />
-                    <div className="flex items-center gap-4 mt-2">
-                      {m.primaryRune > 0 && (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={runeMap.get(m.primaryRune) ?? ''}
-                            alt="Keystone"
-                            width={36} height={36}
-                            className="w-9 h-9 rounded-full border-2 border-purple-400/40"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }}
-                          />
-                          <div>
-                            <div className="font-rajdhani text-[10px] text-gold-light/35 uppercase tracking-wider">Keystone</div>
-                            <div className="font-rajdhani text-xs text-white">Primary Path</div>
+                    {(() => {
+                      const me = details
+                        ? [...details.blueTeam, ...details.redTeam].find(p => p.puuid === puuid)
+                        : null;
+
+                      const STAT_SHARD: Record<number, string> = {
+                        5008: 'Força Adap.', 5005: 'Vel. Ataque', 5007: 'Pressa Hab.',
+                        5001: 'Vida Bônus', 5002: 'Armadura',    5003: 'Res. Mágica',
+                      };
+
+                      const primaryPath   = me ? runesData.find(p => p.id === me.perkStyle)    : null;
+                      const secondaryPath = me ? runesData.find(p => p.id === me.perkSubStyle) : null;
+                      const selectedSet   = new Set<number>(me?.allRunes ?? []);
+
+                      // Fallback: use MatchSummary data if details not loaded
+                      const showFallback = !me && (m.primaryRune > 0 || m.perkSubStyle > 0);
+
+                      if (showFallback) {
+                        return (
+                          <div className="flex items-center gap-4 mt-2">
+                            {m.primaryRune > 0 && (
+                              <img src={runeMap.get(m.primaryRune) ?? ''} alt="Keystone" width={36} height={36}
+                                className="w-9 h-9 rounded-full border-2 border-purple-400/40"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                            )}
+                            {m.perkSubStyle > 0 && (
+                              <img src={runeMap.get(m.perkSubStyle) ?? ''} alt="Sub path" width={28} height={28}
+                                className="w-7 h-7 opacity-80"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                            )}
                           </div>
+                        );
+                      }
+
+                      if (!primaryPath && !secondaryPath) return null;
+
+                      const ddBase = 'https://ddragon.leagueoflegends.com/cdn/img/';
+
+                      return (
+                        <div className="mt-3 flex flex-wrap gap-6">
+                          {/* Primary path */}
+                          {primaryPath && (
+                            <div className="min-w-[180px]">
+                              <div className="flex items-center gap-2 mb-3">
+                                <img src={`${ddBase}${primaryPath.icon}`} alt={primaryPath.name}
+                                  width={22} height={22} className="w-[22px] h-[22px]"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                                <span className="font-rajdhani font-bold text-xs text-purple-300 uppercase tracking-wider">
+                                  {primaryPath.name}
+                                </span>
+                              </div>
+                              {primaryPath.slots.map((slot, si) => (
+                                <div key={si} className={`flex justify-center gap-2 mb-2 ${si === 0 ? 'mb-3' : ''}`}>
+                                  {slot.runes.map(rune => {
+                                    const chosen = selectedSet.has(rune.id);
+                                    const size   = si === 0 ? 44 : 34;
+                                    return (
+                                      <img key={rune.id}
+                                        src={`${ddBase}${rune.icon}`}
+                                        alt={rune.name} title={rune.name}
+                                        width={size} height={size}
+                                        style={{ width: size, height: size }}
+                                        className={`rounded-full border-2 transition-all flex-shrink-0 ${
+                                          chosen
+                                            ? 'border-purple-400/70 opacity-100 shadow-[0_0_6px_rgba(168,85,247,0.5)]'
+                                            : 'border-transparent opacity-20 grayscale'
+                                        }`}
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }}
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Secondary path */}
+                          {secondaryPath && (
+                            <div className="min-w-[160px]">
+                              <div className="flex items-center gap-2 mb-3">
+                                <img src={`${ddBase}${secondaryPath.icon}`} alt={secondaryPath.name}
+                                  width={18} height={18} className="w-[18px] h-[18px] opacity-80"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                                <span className="font-rajdhani font-bold text-xs text-gold-light/60 uppercase tracking-wider">
+                                  {secondaryPath.name}
+                                </span>
+                              </div>
+                              {secondaryPath.slots.slice(1).map((slot, si) => (
+                                <div key={si} className="flex justify-center gap-2 mb-2">
+                                  {slot.runes.map(rune => {
+                                    const chosen = selectedSet.has(rune.id);
+                                    return (
+                                      <img key={rune.id}
+                                        src={`${ddBase}${rune.icon}`}
+                                        alt={rune.name} title={rune.name}
+                                        width={30} height={30}
+                                        className={`w-[30px] h-[30px] rounded-full border-2 transition-all flex-shrink-0 ${
+                                          chosen
+                                            ? 'border-gold/60 opacity-100'
+                                            : 'border-transparent opacity-20 grayscale'
+                                        }`}
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }}
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Stat shards + skill accuracy */}
+                          {me && (
+                            <div className="space-y-4">
+                              {me.statPerks && (
+                                <div>
+                                  <div className="font-rajdhani text-[10px] text-gold-light/30 uppercase tracking-wider mb-2">Shards</div>
+                                  {[me.statPerks.offense, me.statPerks.flex, me.statPerks.defense].map((id, i) => (
+                                    <div key={i} className="flex items-center gap-2 py-0.5">
+                                      <div className={`w-3.5 h-3.5 rounded-full flex-shrink-0 ${
+                                        i === 0 ? 'bg-red-400/50 border border-red-400/60'
+                                        : i === 1 ? 'bg-arcane-blue/50 border border-arcane-blue/60'
+                                        : 'bg-emerald-400/50 border border-emerald-400/60'
+                                      }`} />
+                                      <span className="font-rajdhani text-xs text-gold-light/60">
+                                        {STAT_SHARD[id] ?? `#${id}`}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {(me.skillshotsHit + me.skillshotsDodged) > 0 && (
+                                <div>
+                                  <div className="font-rajdhani text-[10px] text-gold-light/30 uppercase tracking-wider mb-1">Acerto de Skill</div>
+                                  <div className="font-rajdhani font-bold text-2xl text-arcane-blue leading-none">
+                                    {Math.round(me.skillshotsHit / (me.skillshotsHit + me.skillshotsDodged) * 100)}%
+                                  </div>
+                                  <div className="font-rajdhani text-[10px] text-gold-light/40 mt-0.5">
+                                    {me.skillshotsHit} acertos / {me.skillshotsHit + me.skillshotsDodged} tentativas
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {m.perkSubStyle > 0 && (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={runeMap.get(m.perkSubStyle) ?? ''}
-                            alt="Sub path"
-                            width={28} height={28}
-                            className="w-7 h-7 opacity-80"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }}
-                          />
-                          <div>
-                            <div className="font-rajdhani text-[10px] text-gold-light/35 uppercase tracking-wider">Secondary</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Skill Order */}
@@ -2351,7 +2471,7 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
 
 // ─── Match Scoreboard (expanded view, all 10 players) ─────────────────────────
 
-function MatchScoreboard({ team, isBlue, myPuuid, ddItems, champMap, spellMap, runeMap }: {
+function MatchScoreboard({ team, isBlue, myPuuid, ddItems, champMap, spellMap, runeMap, runesData: _runesData }: {
   team: MatchDetailsParticipant[];
   isBlue: boolean;
   myPuuid: string;
