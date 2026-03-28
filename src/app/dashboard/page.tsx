@@ -2340,13 +2340,13 @@ function MatchScoreboard({ team, isBlue, myPuuid, ddItems, champMap, spellMap, r
   myPuuid: string;
   ddItems: Record<string, DDragonItemInfo>;
 } & LiveGameMaps) {
-  const maxDmg    = Math.max(...team.map(p => p.damageToChamps), 1);
+  const maxDmg     = Math.max(...team.map(p => p.damageToChamps), 1);
   const won        = team[0]?.win === true;
-  const headerBg   = isBlue ? 'bg-arcane-blue/10 border-arcane-blue/20' : 'bg-red-500/10 border-red-500/20';
-  const headerText = isBlue ? 'text-arcane-blue' : 'text-red-400';
-  const accentBorder = isBlue ? 'border-l-arcane-blue/40' : 'border-l-red-500/40';
+  const headerBg   = won ? 'bg-purple-500/10 border-purple-500/20' : 'bg-red-500/10 border-red-500/20';
+  const headerText = won ? 'text-purple-400' : 'text-red-400';
+  const accentBorder = won ? 'border-l-purple-400/40' : 'border-l-red-500/40';
+  const teamName   = isBlue ? 'Time Azul' : 'Time Vermelho';
   const winLabel   = won ? 'VITÓRIA' : 'DERROTA';
-  const winColor   = won ? 'text-arcane-blue' : 'text-red-400';
 
   return (
     <div>
@@ -2357,11 +2357,10 @@ function MatchScoreboard({ team, isBlue, myPuuid, ddItems, champMap, spellMap, r
         {/* Spacer: spells+runes */}
         <div className="w-[30px] flex-shrink-0" />
         {/* Name column: team label + win result */}
-        <div className="w-36 flex-shrink-0 flex items-center gap-1.5">
+        <div className="w-48 flex-shrink-0">
           <span className={`font-rajdhani font-bold text-[11px] tracking-widest uppercase whitespace-nowrap ${headerText}`}>
-            {isBlue ? 'Time Azul' : 'Time Vermelho'}
+            {teamName} <span className="opacity-70">({winLabel})</span>
           </span>
-          <span className={`font-rajdhani font-bold text-[10px] whitespace-nowrap ${winColor}`}>· {winLabel}</span>
         </div>
         {/* Column labels */}
         <div className="flex gap-2 font-rajdhani text-[10px] text-gold-light/30 uppercase tracking-wider">
