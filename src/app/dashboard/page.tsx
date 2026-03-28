@@ -1751,7 +1751,7 @@ function ItemSlot({ id, ddItems, size = 28 }: { id: number; ddItems: Record<stri
   const anchorRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
 
-  if (!id) return <div style={{ width: size, height: size }} className="rounded-sm bg-white/5 border border-white/8 flex-shrink-0" />;
+  if (!id) return <div style={{ width: size, height: size }} className="rounded-sm bg-[#12111a] flex-shrink-0" />;
   const src = itemIconUrl(id);
   if (!src) return null;
 
