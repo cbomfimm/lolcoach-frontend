@@ -1923,78 +1923,117 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
 
       {/* ── Compact row ── */}
       <div
-        className="flex items-center gap-2 pl-4 pr-3 py-2.5 cursor-pointer select-none"
+        className="flex items-center gap-3 pl-4 pr-3 py-2.5 cursor-pointer select-none min-h-[72px]"
         onClick={handleExpand}
       >
-        {/* Champion icon (circular) */}
-        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-white/15 shadow-md">
-          <img src={champIconUrl(m.champion)} alt={m.champion} width={40} height={40}
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} />
-        </div>
-
-        {/* Spells + runes (2×2 grid) */}
-        <div className="flex gap-0.5 flex-shrink-0">
-          <div className="flex flex-col gap-0.5">
-            {spell1Url ? <img src={spell1Url} alt="D" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
-              : <div className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />}
-            {spell2Url ? <img src={spell2Url} alt="F" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
-              : <div className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />}
-          </div>
-          <div className="flex flex-col gap-0.5">
-            {keystoneUrl ? <img src={keystoneUrl} alt="" width={16} height={16} className="w-4 h-4" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
-              : <div className="w-4 h-4 rounded-full bg-arcane-panel/50" />}
-            {subPathUrl ? <img src={subPathUrl} alt="" width={16} height={16} className="w-4 h-4 opacity-70" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
-              : <div className="w-4 h-4 rounded-full bg-arcane-panel/30" />}
-          </div>
-        </div>
-
-        {/* Champion + role */}
-        <div className="w-[88px] flex-shrink-0">
-          <div className="font-cinzel font-bold text-xs text-white truncate">{m.champion}</div>
-          <div className="font-rajdhani text-[11px] text-gold-light/50">{ROLE_LABEL[m.role] ?? m.role}</div>
-        </div>
-
-        {/* Result badge */}
-        <div className="flex-shrink-0">
-          <span className={`font-rajdhani font-bold text-[10px] px-1.5 py-0.5 rounded-sm ${
-            isRemake ? 'bg-gold-light/10 text-gold-light/40 border border-gold-light/15'
-            : m.win  ? 'bg-arcane-blue/20 text-arcane-blue border border-arcane-blue/30'
-                     : 'bg-red-500/20 text-red-400 border border-red-500/30'
+        {/* ── Col 1: Game info ── */}
+        <div className="w-[108px] flex-shrink-0 space-y-1">
+          <p className={`font-rajdhani font-bold text-[11px] leading-none ${
+            isRemake ? 'text-gold-light/40' : m.win ? 'text-arcane-blue' : 'text-red-400'
           }`}>
-            {isRemake ? 'REMAKE' : m.win ? 'WIN' : 'LOSS'}
+            {m.queueName ?? 'Ranked Solo'}
+          </p>
+          <span className={`inline-block font-rajdhani font-bold text-[10px] px-1.5 py-0.5 rounded-sm border leading-none ${
+            isRemake ? 'bg-gold-light/10 text-gold-light/40 border-gold-light/15'
+            : m.win  ? 'bg-arcane-blue/20 text-arcane-blue border-arcane-blue/30'
+                     : 'bg-red-500/20 text-red-400 border-red-500/30'
+          }`}>
+            {isRemake ? 'REMAKE' : m.win ? 'VITÓRIA' : 'DERROTA'}
           </span>
+          <p className="font-rajdhani text-[10px] text-gold-light/40 leading-none">
+            {fmtDuration(Number(m.gameDurationSecs))}
+            <span className="mx-1 opacity-50">·</span>
+            {timeAgo(m.gameStartTimestamp)}
+          </p>
         </div>
 
-        {/* KDA */}
-        <div className="flex-1 min-w-0">
-          <div className={`font-cinzel font-bold text-sm ${kdaColor(m.kda)}`}>
-            {m.kills}/{m.deaths}/{m.assists}
+        {/* ── Col 2: Champion icon + spells/runes ── */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className={`w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 shadow-md ${
+            isRemake ? 'border-gold/20' : m.win ? 'border-arcane-blue/60' : 'border-red-500/60'
+          }`}>
+            <img src={champIconUrl(m.champion)} alt={m.champion} width={48} height={48}
+              className="w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }} />
           </div>
-          <div className="font-rajdhani text-[11px] text-gold-light/45">{m.kda} KDA</div>
+
+          {/* Spells + runes 2×2 */}
+          <div className="flex gap-0.5 flex-shrink-0">
+            <div className="flex flex-col gap-0.5">
+              {spell1Url ? <img src={spell1Url} alt="D" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                : <div className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />}
+              {spell2Url ? <img src={spell2Url} alt="F" width={16} height={16} className="w-4 h-4 rounded-sm border border-gold/10" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                : <div className="w-4 h-4 rounded-sm bg-arcane-panel border border-gold/10" />}
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {keystoneUrl ? <img src={keystoneUrl} alt="" width={16} height={16} className="w-4 h-4" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                : <div className="w-4 h-4 rounded-full bg-arcane-panel/50" />}
+              {subPathUrl ? <img src={subPathUrl} alt="" width={16} height={16} className="w-4 h-4 opacity-70" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                : <div className="w-4 h-4 rounded-full bg-arcane-panel/30" />}
+            </div>
+          </div>
         </div>
 
-        {/* CS */}
-        <div className="hidden sm:block text-right flex-shrink-0 w-14">
-          <div className="font-rajdhani font-bold text-sm text-white/80">{m.cs} CS</div>
-          <div className="font-rajdhani text-[11px] text-gold-light/45">{m.csPerMin}/min</div>
+        {/* ── Col 3: KDA + CS ── */}
+        <div className="w-[96px] flex-shrink-0 space-y-0.5">
+          <div className="font-cinzel font-bold text-[13px] leading-none">
+            <span className="text-arcane-blue">{m.kills}</span>
+            <span className="text-gold-light/30 mx-0.5">/</span>
+            <span className="text-red-400">{m.deaths}</span>
+            <span className="text-gold-light/30 mx-0.5">/</span>
+            <span className="text-arcane-blue">{m.assists}</span>
+          </div>
+          <div className={`font-rajdhani text-[11px] ${kdaColor(m.kda)}`}>{m.kda} KDA</div>
+          <div className="font-rajdhani text-[11px] text-gold-light/40">
+            {m.csPerMin}/min
+            <span className="text-gold-light/25 ml-1">({m.cs})</span>
+          </div>
         </div>
 
-        {/* Items compact */}
-        <div className="hidden lg:flex items-center gap-0.5 flex-shrink-0">
-          {coreItems.map((id, idx) => <ItemSlot key={idx} id={id} ddItems={ddItems} size={26} />)}
-          <div className="w-px bg-white/10 mx-1 self-stretch" />
-          <ItemSlot id={trinketId} ddItems={ddItems} size={26} />
+        {/* ── Col 4: Items + multi-kill badge ── */}
+        <div className="hidden lg:flex flex-col gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-0.5">
+            {coreItems.map((id, idx) => <ItemSlot key={idx} id={id} ddItems={ddItems} size={28} />)}
+            <div className="w-px bg-white/10 mx-1 self-stretch" />
+            <ItemSlot id={trinketId} ddItems={ddItems} size={22} />
+          </div>
+          {m.pentaKills > 0 && (
+            <span className="font-rajdhani font-bold text-[10px] px-1.5 py-0.5 rounded border bg-yellow-500/10 text-yellow-400 border-yellow-500/30 w-fit">
+              Pentakill 🏆
+            </span>
+          )}
         </div>
 
-        {/* Time ago + duration + chevron */}
-        <div className="flex flex-col items-end gap-0 flex-shrink-0 ml-1">
-          <div className="font-rajdhani text-[11px] text-gold-light/60">{timeAgo(m.gameStartTimestamp)}</div>
-          <div className="font-rajdhani text-[10px] text-gold-light/35">{fmtDuration(Number(m.gameDurationSecs))}</div>
+        {/* ── Col 5: Players (visible when details loaded) ── */}
+        {details && (
+          <div className="hidden xl:flex gap-3 flex-1 min-w-0">
+            {[details.blueTeam, details.redTeam].map((team, ti) => (
+              <div key={ti} className="space-y-px min-w-0 w-[90px]">
+                {team.map((p) => {
+                  const isMe = p.puuid === puuid;
+                  const icon = champIconUrlById(p.championId, champMap);
+                  return (
+                    <div key={p.puuid} className="flex items-center gap-1 min-w-0">
+                      {icon
+                        ? <img src={icon} alt={p.championName} width={14} height={14} className="w-3.5 h-3.5 rounded-full flex-shrink-0 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity='0'; }} />
+                        : <div className="w-3.5 h-3.5 rounded-full bg-arcane-panel flex-shrink-0" />}
+                      <span className={`font-rajdhani text-[11px] truncate ${isMe ? 'text-gold font-bold' : 'text-gold-light/40'}`}>
+                        {p.riotId.split('#')[0]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Chevron ── */}
+        <div className="ml-auto flex-shrink-0">
+          <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronDown className="w-4 h-4 text-gold-light/40" />
+          </motion.div>
         </div>
-        <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown className="w-4 h-4 text-gold-light/40 ml-1 flex-shrink-0" />
-        </motion.div>
       </div>
 
       {/* ── Expanded panel ── */}
