@@ -27,7 +27,7 @@ import {
   createCheckoutSession, SubscriptionRequiredError,
   type RiotProfile, type MatchSummary, type ChampionStats, type LiveGame, type SummonerProfile,
   type PostGameSession, type PagedResult, type AnalyticsTrend, type ChampSelectEntry,
-  type ItemPurchase, type MatchDetails, type MatchDetailsParticipant, type AggregatedStats,
+  type ItemPurchase, type SkillLevelUp, type MatchDetails, type MatchDetailsParticipant, type AggregatedStats,
 } from '@/lib/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -1873,7 +1873,9 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
   index: number;
 } & LiveGameMaps) {
   const [expanded, setExpanded]         = useState(false);
+  const [activeTab, setActiveTab]       = useState<'postGame'|'performance'|'itemBuild'>('postGame');
   const [timeline, setTimeline]         = useState<ItemPurchase[] | null>(null);
+  const [skills, setSkills]             = useState<SkillLevelUp[] | null>(null);
   const [timelineLoading, setTlLoading] = useState(false);
   const [details, setDetails]           = useState<MatchDetails | null>(null);
   const [detailsLoading, setDlLoading]  = useState(false);
@@ -1884,8 +1886,8 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
       if (timeline === null) {
         setTlLoading(true);
         getMatchTimeline(m.matchId, puuid)
-          .then(data => setTimeline(data.items))
-          .catch(() => setTimeline([]))
+          .then(data => { setTimeline(data.items); setSkills(data.skills ?? []); })
+          .catch(() => { setTimeline([]); setSkills([]); })
           .finally(() => setTlLoading(false));
       }
       if (details === null) {
@@ -2049,96 +2051,266 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
           >
             <div className="border-t border-white/8">
 
-              {/* ── Scoreboard de todos os jogadores ── */}
-              {detailsLoading && (
-                <div className="flex items-center gap-2 px-5 py-3 text-gold-light/50 font-rajdhani text-xs">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando scoreboard...
-                </div>
-              )}
-              {details && (
-                <div className="space-y-0">
-                  <MatchScoreboard
-                    team={details.blueTeam} isBlue myPuuid={puuid}
-                    ddItems={ddItems} champMap={champMap} spellMap={spellMap} runeMap={runeMap}
-                  />
-                  <MatchScoreboard
-                    team={details.redTeam} isBlue={false} myPuuid={puuid}
-                    ddItems={ddItems} champMap={champMap} spellMap={spellMap} runeMap={runeMap}
-                  />
-                </div>
-              )}
+              {/* ── Tabs ── */}
+              <div className="flex items-center gap-0 border-b border-white/8 px-4">
+                {([
+                  { id: 'postGame',     label: 'Post Game' },
+                  { id: 'performance',  label: 'Performance' },
+                  { id: 'itemBuild',    label: 'Item Build' },
+                ] as const).map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={(e) => { e.stopPropagation(); setActiveTab(tab.id); }}
+                    className={`font-rajdhani font-bold text-xs tracking-widest uppercase px-4 py-2.5 border-b-2 transition-colors ${
+                      activeTab === tab.id
+                        ? 'border-arcane-blue text-arcane-blue'
+                        : 'border-transparent text-gold-light/35 hover:text-gold-light/60'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
-              {/* ── Stats do jogador principal ── */}
-              <div className="px-4 pb-4 pt-3 space-y-3">
-                {/* Combat */}
+              {/* ── Post Game tab ── */}
+              {activeTab === 'postGame' && (
                 <div>
-                  <SectionHeader label="Combate" color="bg-red-400" />
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-                    <ExpandStat label="Dano Causado"   value={m.damageToChamps.toLocaleString('pt-BR')} />
-                    <ExpandStat label="Dano Recebido"  value={m.damageTaken.toLocaleString('pt-BR')} />
-                    <ExpandStat label="Cura Total"     value={m.totalHeal.toLocaleString('pt-BR')} />
-                    <ExpandStat label="Dano a Obj."    value={m.damageToObjectives.toLocaleString('pt-BR')} />
-                    {m.turretKills > 0    && <ExpandStat label="Torres"        value={String(m.turretKills)} />}
-                    {m.killingSprees > 0  && <ExpandStat label="Sprees"        value={String(m.killingSprees)} />}
-                    {m.pentaKills > 0     && <ExpandStat label="Pentas"        value={String(m.pentaKills)} highlight />}
-                    {m.objectivesStolen > 0 && <ExpandStat label="Obj. Roubados" value={String(m.objectivesStolen)} highlight />}
-                    {m.firstBlood         && <ExpandStat label="First Blood"   value="Sim" highlight />}
-                  </div>
-                </div>
-
-                {/* Vision & Economy */}
-                <div>
-                  <SectionHeader label="Visão & Economia" color="bg-arcane-blue" />
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-                    <ExpandStat label="Visão"          value={String(m.visionScore)} />
-                    <ExpandStat label="Wards Colocadas" value={String(m.wardsPlaced)} />
-                    <ExpandStat label="Wards Destruídas" value={String(m.wardsKilled)} />
-                    <ExpandStat label="Wards Controle" value={String(m.controlWardsBought)} />
-                    <ExpandStat label="Ouro Ganho"     value={m.goldEarned.toLocaleString('pt-BR')} />
-                    <ExpandStat label="Ouro Gasto"     value={m.goldSpent.toLocaleString('pt-BR')} />
-                    <ExpandStat label="Tempo Morto"    value={`${Math.floor(m.timeDeadSecs/60)}m ${m.timeDeadSecs%60}s`} />
-                    <ExpandStat label="CC Aplicado"    value={`${m.crowdControlScore}s`} />
-                  </div>
-                </div>
-
-                {/* Spell casts */}
-                <div>
-                  <SectionHeader label="Usos de Habilidades" color="bg-purple-400" />
-                  <div className="grid grid-cols-4 gap-2">
-                    {([['Q', m.qCasts], ['W', m.wCasts], ['E', m.eCasts], ['R', m.rCasts]] as const).map(([k, v]) => (
-                      <ExpandStat key={k} label={k} value={String(v)} />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Item timeline */}
-                <div>
-                  <SectionHeader label="Ordem de Compras" color="bg-gold/70" />
-                  {timelineLoading && (
-                    <div className="flex items-center gap-2 text-gold-light/50 font-rajdhani text-xs">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando timeline...
+                  {detailsLoading && (
+                    <div className="flex items-center gap-2 px-5 py-4 text-gold-light/50 font-rajdhani text-xs">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando...
                     </div>
                   )}
-                  {!timelineLoading && timeline?.length === 0 && (
-                    <div className="text-gold-light/35 font-rajdhani text-xs">Timeline não disponível.</div>
+                  {details && (
+                    <div className="space-y-0">
+                      <MatchScoreboard
+                        team={details.blueTeam} isBlue myPuuid={puuid}
+                        ddItems={ddItems} champMap={champMap} spellMap={spellMap} runeMap={runeMap}
+                      />
+                      <MatchScoreboard
+                        team={details.redTeam} isBlue={false} myPuuid={puuid}
+                        ddItems={ddItems} champMap={champMap} spellMap={spellMap} runeMap={runeMap}
+                      />
+                    </div>
                   )}
-                  {!timelineLoading && timeline && timeline.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {timeline.map((ev, idx) => (
-                        <motion.div key={idx}
-                          initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: idx * 0.025, duration: 0.2 }}
-                          className="flex flex-col items-center gap-0.5">
-                          <ItemSlot id={ev.itemId} ddItems={ddItems} size={32} />
-                          <span className="font-rajdhani text-[9px] text-gold-light/55">
-                            {ev.minuteMark}:{String(ev.secondMark).padStart(2, '0')}
-                          </span>
-                        </motion.div>
+                </div>
+              )}
+
+              {/* ── Performance tab ── */}
+              {activeTab === 'performance' && (
+                <div className="overflow-x-auto">
+                  {detailsLoading && (
+                    <div className="flex items-center gap-2 px-5 py-4 text-gold-light/50 font-rajdhani text-xs">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando...
+                    </div>
+                  )}
+                  {details && (() => {
+                    const allPlayers = [...details.blueTeam, ...details.redTeam]
+                      .sort((a, b) => b.damageToChamps - a.damageToChamps);
+                    const maxDmg = Math.max(...allPlayers.map(p => p.damageToChamps), 1);
+                    return (
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-white/8">
+                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-4 py-2 w-[200px]">Player</th>
+                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">Kills</th>
+                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">KDA</th>
+                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-arcane-blue px-3 py-2 text-center border-b-2 border-arcane-blue">Damage</th>
+                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">Gold</th>
+                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">Wards</th>
+                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">CS</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allPlayers.map((p) => {
+                            const isMe   = p.puuid === puuid;
+                            const icon   = champIconUrlById(p.championId, champMap);
+                            const kda    = p.deaths === 0 ? `${(p.kills + p.assists).toFixed(2)}` : ((p.kills + p.assists) / p.deaths).toFixed(2);
+                            const dmgPct = Math.round(p.damageToChamps * 100 / maxDmg);
+                            const isWin  = p.win;
+                            return (
+                              <tr key={p.puuid} className={`border-b border-white/[0.04] ${isMe ? 'bg-gold/[0.05]' : 'hover:bg-white/[0.02]'}`}>
+                                <td className="px-4 py-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-1 h-8 rounded-full flex-shrink-0 ${isWin ? 'bg-arcane-blue' : 'bg-red-500'}`} />
+                                    {icon
+                                      ? <img src={icon} alt={p.championName} width={28} height={28} className="w-7 h-7 rounded-full object-cover border border-white/10 flex-shrink-0" onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}} />
+                                      : <div className="w-7 h-7 rounded-full bg-arcane-panel flex-shrink-0" />}
+                                    <span className={`font-rajdhani text-xs truncate max-w-[110px] ${isMe ? 'text-gold font-bold' : 'text-gold-light/70'}`}>
+                                      {p.riotId}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2.5 text-center font-rajdhani font-bold text-sm text-white">{p.kills}</td>
+                                <td className="px-3 py-2.5 text-center">
+                                  <div className="font-rajdhani font-bold text-sm text-white">{kda}</div>
+                                  <div className="font-rajdhani text-[10px] text-gold-light/35">{p.kills}/{p.deaths}/{p.assists}</div>
+                                </td>
+                                <td className="px-3 py-2.5 text-center">
+                                  <div className="font-rajdhani font-bold text-sm text-white">{p.damageToChamps.toLocaleString('pt-BR')}</div>
+                                  <div className="mt-1 h-1 rounded-full bg-white/10 w-20 mx-auto">
+                                    <div className={`h-full rounded-full ${isWin ? 'bg-arcane-blue' : 'bg-red-500'}`} style={{ width: `${dmgPct}%` }} />
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2.5 text-center font-rajdhani text-sm text-gold-light/70">{(p.goldEarned/1000).toFixed(1)}k</td>
+                                <td className="px-3 py-2.5 text-center font-rajdhani text-sm text-gold-light/70">{p.wardsPlaced}</td>
+                                <td className="px-3 py-2.5 text-center font-rajdhani text-sm text-gold-light/70">{p.cs}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* ── Item Build tab ── */}
+              {activeTab === 'itemBuild' && (
+                <div className="px-4 pb-4 pt-3 space-y-5">
+
+                  {/* Runes */}
+                  <div>
+                    <SectionHeader label="Runas" color="bg-purple-400" />
+                    <div className="flex items-center gap-4 mt-2">
+                      {m.primaryRune > 0 && (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={runeMap.get(m.primaryRune) ?? ''}
+                            alt="Keystone"
+                            width={36} height={36}
+                            className="w-9 h-9 rounded-full border-2 border-purple-400/40"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }}
+                          />
+                          <div>
+                            <div className="font-rajdhani text-[10px] text-gold-light/35 uppercase tracking-wider">Keystone</div>
+                            <div className="font-rajdhani text-xs text-white">Primary Path</div>
+                          </div>
+                        </div>
+                      )}
+                      {m.perkSubStyle > 0 && (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={runeMap.get(m.perkSubStyle) ?? ''}
+                            alt="Sub path"
+                            width={28} height={28}
+                            className="w-7 h-7 opacity-80"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }}
+                          />
+                          <div>
+                            <div className="font-rajdhani text-[10px] text-gold-light/35 uppercase tracking-wider">Secondary</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Skill Order */}
+                  <div>
+                    <SectionHeader label="Skill Order" color="bg-arcane-blue" />
+                    {timelineLoading && (
+                      <div className="flex items-center gap-2 text-gold-light/50 font-rajdhani text-xs mt-2">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Carregando...
+                      </div>
+                    )}
+                    {!timelineLoading && skills && skills.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {(['Q', 'W', 'E', 'R'] as const).map((key, si) => {
+                          const slot = si + 1;
+                          const slotColor: Record<number, string> = {
+                            1: 'bg-arcane-blue text-white',
+                            2: 'bg-purple-500 text-white',
+                            3: 'bg-red-500 text-white',
+                            4: 'bg-yellow-500 text-black',
+                          };
+                          return (
+                            <div key={key} className="flex items-center gap-1">
+                              <span className={`w-5 h-5 rounded flex items-center justify-center font-rajdhani font-bold text-[10px] flex-shrink-0 ${slotColor[slot]}`}>
+                                {key}
+                              </span>
+                              <div className="flex gap-0.5">
+                                {Array.from({ length: 18 }, (_, i) => {
+                                  const lv = i + 1;
+                                  const ev = skills.find(s => s.level === lv && s.skillSlot === slot);
+                                  return (
+                                    <div
+                                      key={lv}
+                                      className={`w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center border ${
+                                        ev
+                                          ? `${slotColor[slot]} border-transparent`
+                                          : 'bg-arcane-dark border-white/10 text-gold-light/20'
+                                      }`}
+                                    >
+                                      {ev ? lv : ''}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {!timelineLoading && skills?.length === 0 && (
+                      <p className="font-rajdhani text-xs text-gold-light/30 mt-2">Dados não disponíveis.</p>
+                    )}
+                  </div>
+
+                  {/* Item timeline */}
+                  <div>
+                    <SectionHeader label="Ordem de Compras" color="bg-gold/70" />
+                    {timelineLoading && (
+                      <div className="flex items-center gap-2 text-gold-light/50 font-rajdhani text-xs mt-2">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Carregando...
+                      </div>
+                    )}
+                    {!timelineLoading && timeline && timeline.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {timeline.map((ev, idx) => (
+                          <motion.div key={idx}
+                            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: idx * 0.02, duration: 0.15 }}
+                            className="flex flex-col items-center gap-0.5">
+                            <ItemSlot id={ev.itemId} ddItems={ddItems} size={34} />
+                            <span className="font-rajdhani text-[9px] text-gold-light/50">
+                              {ev.minuteMark} min
+                            </span>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                    {!timelineLoading && timeline?.length === 0 && (
+                      <p className="font-rajdhani text-xs text-gold-light/30 mt-2">Dados não disponíveis.</p>
+                    )}
+                  </div>
+
+                  {/* Spell casts */}
+                  <div>
+                    <SectionHeader label="Usos de Habilidades" color="bg-purple-400" />
+                    <div className="grid grid-cols-4 gap-2 mt-2">
+                      {([['Q', m.qCasts], ['W', m.wCasts], ['E', m.eCasts], ['R', m.rCasts]] as const).map(([k, v]) => (
+                        <ExpandStat key={k} label={k} value={String(v)} />
                       ))}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Combat stats */}
+                  <div>
+                    <SectionHeader label="Combate & Economia" color="bg-red-400" />
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 mt-2">
+                      <ExpandStat label="Dano Causado"    value={m.damageToChamps.toLocaleString('pt-BR')} />
+                      <ExpandStat label="Dano Recebido"   value={m.damageTaken.toLocaleString('pt-BR')} />
+                      <ExpandStat label="Ouro Ganho"      value={m.goldEarned.toLocaleString('pt-BR')} />
+                      <ExpandStat label="Visão"           value={String(m.visionScore)} />
+                      <ExpandStat label="Wards Colocadas" value={String(m.wardsPlaced)} />
+                      <ExpandStat label="Tempo Morto"     value={`${Math.floor(m.timeDeadSecs/60)}m ${m.timeDeadSecs%60}s`} />
+                      {m.pentaKills > 0       && <ExpandStat label="Pentas"         value={String(m.pentaKills)} highlight />}
+                      {m.firstBlood           && <ExpandStat label="First Blood"    value="Sim" highlight />}
+                      {m.objectivesStolen > 0 && <ExpandStat label="Obj. Roubados" value={String(m.objectivesStolen)} highlight />}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
             </div>
           </motion.div>
         )}

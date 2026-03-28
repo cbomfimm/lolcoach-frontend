@@ -277,8 +277,15 @@ export interface ItemPurchase {
   secondMark: number;
 }
 
+export interface SkillLevelUp {
+  level: number;      // 1–18
+  skillSlot: number;  // 1=Q 2=W 3=E 4=R
+  timestamp: number;
+}
+
 export interface MatchTimeline {
   items: ItemPurchase[];
+  skills: SkillLevelUp[];
 }
 
 export interface ChampionStats {
