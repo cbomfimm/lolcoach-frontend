@@ -25,10 +25,12 @@ import {
   getRiotProfile, getRiotProfileByPuuid, getMySummoner, getLiveGame,
   getSessions, deleteSession, getAnalyticsTrend, getRecentChampSelect,
   getMatchTimeline, getMatchDetails, getMoreMatches,
+  sessionToMatchSummary,
   createCheckoutSession, SubscriptionRequiredError,
   type RiotProfile, type MatchSummary, type ChampionStats, type LiveGame, type SummonerProfile,
   type PostGameSession, type PagedResult, type AnalyticsTrend, type ChampSelectEntry,
   type ItemPurchase, type SkillLevelUp, type MatchDetails, type MatchDetailsParticipant, type AggregatedStats,
+  type SessionMatchData,
 } from '@/lib/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -221,10 +223,29 @@ export default function DashboardPage() {
       setShowLinkForm(false);
       setLinkInput('');
       setLiveGame(null);
-      setDisplayMatches(p.recentMatches);
-      setMatchOffset(p.recentMatches.length);
-      setHasMore(p.recentMatches.length === 20);
-      setActiveQueue('total');
+      // Carrega histórico de partidas com coaching (via sessões)
+      try {
+        const sessionsResult = await getSessions(50, 0);
+        const sessionMatches = sessionsResult.data
+          .map(s => sessionToMatchSummary(s, p.summoner.puuid))
+          .filter((m): m is MatchSummary => m !== null);
+        if (sessionMatches.length > 0) {
+          setDisplayMatches(sessionMatches);
+          setMatchOffset(sessionMatches.length);
+          setHasMore(sessionsResult.has_more);
+          setActiveQueue('total');
+        } else {
+          setDisplayMatches(p.recentMatches);
+          setMatchOffset(p.recentMatches.length);
+          setHasMore(p.recentMatches.length === 20);
+          setActiveQueue('total');
+        }
+      } catch {
+        setDisplayMatches(p.recentMatches);
+        setMatchOffset(p.recentMatches.length);
+        setHasMore(p.recentMatches.length === 20);
+        setActiveQueue('total');
+      }
     } catch (err) {
       if (err instanceof SubscriptionRequiredError) {
         setShowLinkForm(false);
@@ -261,10 +282,24 @@ export default function DashboardPage() {
           try {
             const p = await getRiotProfileByPuuid(saved.puuid);
             setProfile(p);
-            setDisplayMatches(p.recentMatches);
-            setMatchOffset(p.recentMatches.length);
-            setHasMore(p.recentMatches.length === 20);
-            setActiveQueue('total');
+            // Carrega histórico de partidas com coaching (via sessões)
+            try {
+              const sessionsResult = await getSessions(50, 0);
+              const sessionMatches = sessionsResult.data
+                .map(s => sessionToMatchSummary(s, saved.puuid))
+                .filter((m): m is MatchSummary => m !== null);
+              if (sessionMatches.length > 0) {
+                setDisplayMatches(sessionMatches);
+                setMatchOffset(sessionMatches.length);
+                setHasMore(sessionsResult.has_more);
+                setActiveQueue('total');
+              }
+            } catch {
+              // Se sessões falharem, usa recentMatches do perfil como fallback
+              setDisplayMatches(p.recentMatches);
+              setMatchOffset(p.recentMatches.length);
+              setHasMore(p.recentMatches.length === 20);
+            }
           } catch (err) {
             if (err instanceof SubscriptionRequiredError) {
               setShowUpgradeModal(true);
@@ -1421,10 +1456,17 @@ function ProfileView({ profile, isPro, liveGame, liveLoading, liveError, onCheck
         </div>
       )}
 
-      {/* ── Partidas recentes ── */}
+      {/* ── Partidas recentes (somente com coaching ativo) ── */}
       <div className="bg-arcane-panel border border-gold/20 rounded-sm p-6">
-        <SectionTitle icon={<Zap className="w-4 h-4 text-gold" />} title="Partidas Recentes" />
+        <SectionTitle icon={<Zap className="w-4 h-4 text-gold" />} title="Partidas com Coaching" />
         <div className="mt-4 space-y-2">
+          {displayMatches.length === 0 && !loadingMore && (
+            <div className="flex flex-col items-center gap-2 py-10 text-gold-light/30">
+              <Swords className="w-8 h-8 opacity-40" />
+              <p className="font-rajdhani text-sm uppercase tracking-widest">Nenhuma partida com coaching ainda</p>
+              <p className="font-rajdhani text-xs text-gold-light/20">Ligue o coaching no app desktop e jogue uma partida</p>
+            </div>
+          )}
           {displayMatches.map((m, i) => <MatchRow key={m.matchId} match={m} ddItems={ddItems} puuid={summoner.puuid} index={i} champMap={champMap} spellMap={spellMap} runeMap={runeMap} runesData={runesData} />)}
           {hasMore && (
             <button

@@ -19,6 +19,49 @@ export interface Subscription {
   expires_at: string | null;
 }
 
+export interface SessionMatchPlayer {
+  summonerName: string;
+  puuid:        string;
+  championId:   number;
+  kills:        number;
+  deaths:       number;
+  assists:      number;
+  win:          boolean;
+  teamId:       number;
+  items:        number[];
+}
+
+export interface SessionMatchData {
+  gameId:          number;
+  queueId:         number;
+  queueName:       string;
+  win:             boolean;
+  kills:           number;
+  deaths:          number;
+  assists:         number;
+  cs:              number;
+  csPerMin:        number;
+  goldEarned:      number;
+  damageToChamps:  number;
+  damageTaken:     number;
+  items:           number[];
+  spell1Id:        number;
+  spell2Id:        number;
+  primaryRune:     number;
+  perkStyle:       number;
+  perkSubStyle:    number;
+  visionScore:     number;
+  wardsPlaced:     number;
+  pentaKills:      number;
+  quadraKills:     number;
+  tripleKills:     number;
+  firstBlood:      boolean;
+  turretKills:     number;
+  objectivesStolen: number;
+  killingSprees:   number;
+  allPlayers:      SessionMatchPlayer[];
+}
+
 export interface PostGameSession {
   id: string;
   created_at: string;
@@ -33,6 +76,10 @@ export interface PostGameSession {
   main_errors: string[];
   focus_next: string;
   cs_per_min?: number;
+  match_id?:   string | null;
+  lp_change?:  number | null;
+  win?:        boolean | null;
+  match_data?: SessionMatchData | null;
 }
 
 export interface ChampionAverage {
@@ -459,4 +506,64 @@ export async function getMoreMatches(
   });
   if (!res.ok) return [];
   return res.json();
+}
+
+/** Maps a coaching session (with match_data from LCU) to a MatchSummary for the match history UI */
+export function sessionToMatchSummary(s: PostGameSession, puuid: string): MatchSummary | null {
+  const md = s.match_data;
+  if (!md) return null;
+
+  const kda = md.deaths === 0
+    ? parseFloat(((md.kills + md.assists)).toFixed(2))
+    : parseFloat(((md.kills + md.assists) / md.deaths).toFixed(2));
+
+  return {
+    matchId:          s.match_id ?? `session_${s.id}`,
+    champion:         s.champion,
+    championId:       0,
+    role:             s.role,
+    win:              md.win,
+    isRemake:         false,
+    spell1Id:         md.spell1Id,
+    spell2Id:         md.spell2Id,
+    primaryRune:      md.primaryRune,
+    perkStyle:        md.perkStyle,
+    perkSubStyle:     md.perkSubStyle,
+    gameStartTimestamp: new Date(s.created_at).getTime(),
+    queueName:        md.queueName,
+    queueId:          md.queueId,
+    kills:            md.kills,
+    deaths:           md.deaths,
+    assists:          md.assists,
+    kda,
+    cs:               md.cs,
+    csPerMin:         md.csPerMin,
+    visionScore:      md.visionScore,
+    goldEarned:       md.goldEarned,
+    damageToChamps:   md.damageToChamps,
+    gameDurationSecs: s.game_duration_seconds,
+    items:            md.items,
+    damageTaken:      md.damageTaken,
+    wardsPlaced:      md.wardsPlaced,
+    wardsKilled:      0,
+    controlWardsBought: 0,
+    firstBlood:       md.firstBlood,
+    pentaKills:       md.pentaKills,
+    turretKills:      md.turretKills,
+    totalHeal:        0,
+    goldSpent:        0,
+    timeDeadSecs:     0,
+    damageToObjectives: 0,
+    objectivesStolen: md.objectivesStolen,
+    crowdControlScore: 0,
+    killingSprees:    md.killingSprees,
+    qCasts:           0,
+    wCasts:           0,
+    eCasts:           0,
+    rCasts:           0,
+    participantId:    0,
+    tripleKills:      md.tripleKills,
+    quadraKills:      md.quadraKills,
+    lpChange:         s.lp_change ?? undefined,
+  };
 }
