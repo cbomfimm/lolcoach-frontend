@@ -2117,59 +2117,76 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
                     </div>
                   )}
                   {details && (() => {
-                    const allPlayers = [...details.blueTeam, ...details.redTeam]
-                      .sort((a, b) => b.damageToChamps - a.damageToChamps);
-                    const maxDmg = Math.max(...allPlayers.map(p => p.damageToChamps), 1);
+                    const allPlayers = [...details.blueTeam, ...details.redTeam];
+                    const winners = allPlayers.filter(p => p.win).sort((a, b) => b.damageToChamps - a.damageToChamps);
+                    const losers  = allPlayers.filter(p => !p.win).sort((a, b) => b.damageToChamps - a.damageToChamps);
+                    const maxDmg  = Math.max(...allPlayers.map(p => p.damageToChamps), 1);
+
+                    const colHeaders = (
+                      <tr className="border-b border-white/8">
+                        <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-4 py-2 w-[200px]">Player</th>
+                        <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">Kills</th>
+                        <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">KDA</th>
+                        <th className="font-rajdhani text-[10px] tracking-widest uppercase text-arcane-blue px-3 py-2 text-center border-b-2 border-arcane-blue">Damage</th>
+                        <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">Gold</th>
+                        <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">Wards</th>
+                        <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">CS</th>
+                      </tr>
+                    );
+
+                    const teamHeader = (won: boolean) => (
+                      <tr>
+                        <td colSpan={7} className={`px-4 py-1.5 font-rajdhani font-bold text-[10px] tracking-widest uppercase ${won ? 'text-purple-400 bg-purple-500/10' : 'text-red-400 bg-red-500/10'}`}>
+                          {won ? 'VITÓRIA' : 'DERROTA'}
+                        </td>
+                      </tr>
+                    );
+
+                    const playerRow = (p: MatchDetailsParticipant) => {
+                      const isMe   = p.puuid === puuid;
+                      const icon   = champIconUrlById(p.championId, champMap);
+                      const kda    = p.deaths === 0 ? `${(p.kills + p.assists).toFixed(2)}` : ((p.kills + p.assists) / p.deaths).toFixed(2);
+                      const dmgPct = Math.round(p.damageToChamps * 100 / maxDmg);
+                      const barColor = p.win ? 'bg-purple-400' : 'bg-red-500';
+                      return (
+                        <tr key={p.puuid} className={`border-b border-white/[0.04] ${isMe ? 'bg-gold/[0.05]' : 'hover:bg-white/[0.02]'}`}>
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-1 h-8 rounded-full flex-shrink-0 ${p.win ? 'bg-purple-400' : 'bg-red-500'}`} />
+                              {icon
+                                ? <img src={icon} alt={p.championName} width={28} height={28} className="w-7 h-7 rounded-full object-cover border border-white/10 flex-shrink-0" onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}} />
+                                : <div className="w-7 h-7 rounded-full bg-arcane-panel flex-shrink-0" />}
+                              <span className={`font-rajdhani text-xs truncate max-w-[110px] ${isMe ? 'text-gold font-bold' : 'text-gold-light/70'}`}>
+                                {p.riotId}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-center font-rajdhani font-bold text-sm text-white">{p.kills}</td>
+                          <td className="px-3 py-2.5 text-center">
+                            <div className="font-rajdhani font-bold text-sm text-white">{kda}</div>
+                            <div className="font-rajdhani text-[10px] text-gold-light/35">{p.kills}/{p.deaths}/{p.assists}</div>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <div className="font-rajdhani font-bold text-sm text-white">{p.damageToChamps.toLocaleString('pt-BR')}</div>
+                            <div className="mt-1 h-1 rounded-full bg-white/10 w-20 mx-auto">
+                              <div className={`h-full rounded-full ${barColor}`} style={{ width: `${dmgPct}%` }} />
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-center font-rajdhani text-sm text-gold-light/70">{(p.goldEarned/1000).toFixed(1)}k</td>
+                          <td className="px-3 py-2.5 text-center font-rajdhani text-sm text-gold-light/70">{p.wardsPlaced}</td>
+                          <td className="px-3 py-2.5 text-center font-rajdhani text-sm text-gold-light/70">{p.cs}</td>
+                        </tr>
+                      );
+                    };
+
                     return (
                       <table className="w-full text-left">
-                        <thead>
-                          <tr className="border-b border-white/8">
-                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-4 py-2 w-[200px]">Player</th>
-                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">Kills</th>
-                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">KDA</th>
-                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-arcane-blue px-3 py-2 text-center border-b-2 border-arcane-blue">Damage</th>
-                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">Gold</th>
-                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">Wards</th>
-                            <th className="font-rajdhani text-[10px] tracking-widest uppercase text-gold-light/30 px-3 py-2 text-center">CS</th>
-                          </tr>
-                        </thead>
+                        <thead>{colHeaders}</thead>
                         <tbody>
-                          {allPlayers.map((p) => {
-                            const isMe   = p.puuid === puuid;
-                            const icon   = champIconUrlById(p.championId, champMap);
-                            const kda    = p.deaths === 0 ? `${(p.kills + p.assists).toFixed(2)}` : ((p.kills + p.assists) / p.deaths).toFixed(2);
-                            const dmgPct = Math.round(p.damageToChamps * 100 / maxDmg);
-                            const isWin  = p.win;
-                            return (
-                              <tr key={p.puuid} className={`border-b border-white/[0.04] ${isMe ? 'bg-gold/[0.05]' : 'hover:bg-white/[0.02]'}`}>
-                                <td className="px-4 py-2.5">
-                                  <div className="flex items-center gap-2">
-                                    <div className={`w-1 h-8 rounded-full flex-shrink-0 ${isWin ? 'bg-arcane-blue' : 'bg-red-500'}`} />
-                                    {icon
-                                      ? <img src={icon} alt={p.championName} width={28} height={28} className="w-7 h-7 rounded-full object-cover border border-white/10 flex-shrink-0" onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}} />
-                                      : <div className="w-7 h-7 rounded-full bg-arcane-panel flex-shrink-0" />}
-                                    <span className={`font-rajdhani text-xs truncate max-w-[110px] ${isMe ? 'text-gold font-bold' : 'text-gold-light/70'}`}>
-                                      {p.riotId}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2.5 text-center font-rajdhani font-bold text-sm text-white">{p.kills}</td>
-                                <td className="px-3 py-2.5 text-center">
-                                  <div className="font-rajdhani font-bold text-sm text-white">{kda}</div>
-                                  <div className="font-rajdhani text-[10px] text-gold-light/35">{p.kills}/{p.deaths}/{p.assists}</div>
-                                </td>
-                                <td className="px-3 py-2.5 text-center">
-                                  <div className="font-rajdhani font-bold text-sm text-white">{p.damageToChamps.toLocaleString('pt-BR')}</div>
-                                  <div className="mt-1 h-1 rounded-full bg-white/10 w-20 mx-auto">
-                                    <div className={`h-full rounded-full ${isWin ? 'bg-arcane-blue' : 'bg-red-500'}`} style={{ width: `${dmgPct}%` }} />
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2.5 text-center font-rajdhani text-sm text-gold-light/70">{(p.goldEarned/1000).toFixed(1)}k</td>
-                                <td className="px-3 py-2.5 text-center font-rajdhani text-sm text-gold-light/70">{p.wardsPlaced}</td>
-                                <td className="px-3 py-2.5 text-center font-rajdhani text-sm text-gold-light/70">{p.cs}</td>
-                              </tr>
-                            );
-                          })}
+                          {teamHeader(true)}
+                          {winners.map(playerRow)}
+                          {teamHeader(false)}
+                          {losers.map(playerRow)}
                         </tbody>
                       </table>
                     );
