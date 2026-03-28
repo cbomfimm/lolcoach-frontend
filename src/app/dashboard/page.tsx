@@ -1880,23 +1880,24 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
   const [details, setDetails]           = useState<MatchDetails | null>(null);
   const [detailsLoading, setDlLoading]  = useState(false);
 
+  // Carrega detalhes automaticamente (jogadores visíveis sem expandir)
+  useEffect(() => {
+    setDlLoading(true);
+    getMatchDetails(m.matchId)
+      .then(setDetails)
+      .catch(() => setDetails(null))
+      .finally(() => setDlLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [m.matchId]);
+
   const handleExpand = () => {
     setExpanded(v => !v);
-    if (!expanded) {
-      if (timeline === null) {
-        setTlLoading(true);
-        getMatchTimeline(m.matchId, puuid)
-          .then(data => { setTimeline(data.items); setSkills(data.skills ?? []); })
-          .catch(() => { setTimeline([]); setSkills([]); })
-          .finally(() => setTlLoading(false));
-      }
-      if (details === null) {
-        setDlLoading(true);
-        getMatchDetails(m.matchId)
-          .then(setDetails)
-          .catch(() => setDetails(null))
-          .finally(() => setDlLoading(false));
-      }
+    if (!expanded && timeline === null) {
+      setTlLoading(true);
+      getMatchTimeline(m.matchId, puuid)
+        .then(data => { setTimeline(data.items); setSkills(data.skills ?? []); })
+        .catch(() => { setTimeline([]); setSkills([]); })
+        .finally(() => setTlLoading(false));
     }
   };
 
@@ -2006,11 +2007,11 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
           )}
         </div>
 
-        {/* ── Col 5: Players (visible when details loaded) ── */}
-        {details && (
-          <div className="hidden xl:flex gap-3 flex-1 min-w-0">
-            {[details.blueTeam, details.redTeam].map((team, ti) => (
-              <div key={ti} className="space-y-px min-w-0 w-[90px]">
+        {/* ── Col 5: Players ── */}
+        <div className="hidden lg:flex gap-4 flex-1 min-w-0">
+          {details ? (
+            [details.blueTeam, details.redTeam].map((team, ti) => (
+              <div key={ti} className="space-y-px min-w-0 w-[96px]">
                 {team.map((p) => {
                   const isMe = p.puuid === puuid;
                   const icon = champIconUrlById(p.championId, champMap);
@@ -2018,7 +2019,7 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
                     <div key={p.puuid} className="flex items-center gap-1 min-w-0">
                       {icon
                         ? <img src={icon} alt={p.championName} width={14} height={14} className="w-3.5 h-3.5 rounded-full flex-shrink-0 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity='0'; }} />
-                        : <div className="w-3.5 h-3.5 rounded-full bg-arcane-panel flex-shrink-0" />}
+                        : <div className="w-3.5 h-3.5 rounded-full bg-arcane-panel/50 flex-shrink-0" />}
                       <span className={`font-rajdhani text-[11px] truncate ${isMe ? 'text-gold font-bold' : 'text-gold-light/40'}`}>
                         {p.riotId.split('#')[0]}
                       </span>
@@ -2026,9 +2027,21 @@ function MatchRow({ match: m, ddItems, puuid, index, champMap, spellMap, runeMap
                   );
                 })}
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          ) : (
+            /* Skeleton enquanto carrega */
+            [0, 1].map(ti => (
+              <div key={ti} className="space-y-px w-[96px]">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    <div className="w-3.5 h-3.5 rounded-full bg-white/5 flex-shrink-0" />
+                    <div className="h-2.5 rounded bg-white/5 w-16" />
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
+        </div>
 
         {/* ── Chevron ── */}
         <div className="ml-auto flex-shrink-0">
@@ -2327,29 +2340,30 @@ function MatchScoreboard({ team, isBlue, myPuuid, ddItems, champMap, spellMap, r
   myPuuid: string;
   ddItems: Record<string, DDragonItemInfo>;
 } & LiveGameMaps) {
-  const maxDmg = Math.max(...team.map(p => p.damageToChamps), 1);
+  const maxDmg    = Math.max(...team.map(p => p.damageToChamps), 1);
+  const won        = team[0]?.win === true;
   const headerBg   = isBlue ? 'bg-arcane-blue/10 border-arcane-blue/20' : 'bg-red-500/10 border-red-500/20';
   const headerText = isBlue ? 'text-arcane-blue' : 'text-red-400';
   const accentBorder = isBlue ? 'border-l-arcane-blue/40' : 'border-l-red-500/40';
-  const winLabel = team[0]?.win ? (isBlue ? 'VITÓRIA' : 'DERROTA') : (isBlue ? 'DERROTA' : 'VITÓRIA');
-  const winColor = team[0]?.win ? (isBlue ? 'text-arcane-blue' : 'text-red-400') : (isBlue ? 'text-red-400' : 'text-arcane-blue');
+  const winLabel   = won ? 'VITÓRIA' : 'DERROTA';
+  const winColor   = won ? 'text-arcane-blue' : 'text-red-400';
 
   return (
     <div>
-      {/* Header — mirrors player row flex layout so columns align perfectly */}
+      {/* Header */}
       <div className={`flex items-center gap-2 px-3 py-1 border-b ${headerBg} border-y border-gold/5`}>
         {/* Spacer: champ icon (w-8) */}
         <div className="w-8 flex-shrink-0" />
-        {/* Spacer: spells (w-3.5) + gap-0.5 + runes (w-3.5) = 30px */}
+        {/* Spacer: spells+runes */}
         <div className="w-[30px] flex-shrink-0" />
         {/* Name column: team label + win result */}
-        <div className="w-28 flex-shrink-0 flex items-center gap-1.5 overflow-hidden">
-          <span className={`font-rajdhani font-bold text-[11px] tracking-widest uppercase truncate ${headerText}`}>
+        <div className="w-36 flex-shrink-0 flex items-center gap-1.5">
+          <span className={`font-rajdhani font-bold text-[11px] tracking-widest uppercase whitespace-nowrap ${headerText}`}>
             {isBlue ? 'Time Azul' : 'Time Vermelho'}
           </span>
           <span className={`font-rajdhani font-bold text-[10px] whitespace-nowrap ${winColor}`}>· {winLabel}</span>
         </div>
-        {/* Column labels — same gap-2 and widths as player row stats */}
+        {/* Column labels */}
         <div className="flex gap-2 font-rajdhani text-[10px] text-gold-light/30 uppercase tracking-wider">
           <span className="w-20 text-center flex-shrink-0">KDA</span>
           <span className="hidden sm:inline-block w-24 text-center flex-shrink-0">Dano</span>
